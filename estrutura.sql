@@ -7,7 +7,8 @@ PRAGMA foreign_keys = ON;
 BEGIN TRANSACTION;
 
 -- 1. Usuarios
-CREATE TABLE IF NOT EXISTS usuarios (
+DROP TABLE IF EXISTS usuarios;
+CREATE TABLE usuarios (
     id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
@@ -17,7 +18,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 
 -- 2. Funcoes (papeis do RBAC)
-CREATE TABLE IF NOT EXISTS funcoes (
+DROP TABLE IF EXISTS funcoes;
+CREATE TABLE funcoes (
     id_funcao INTEGER PRIMARY KEY AUTOINCREMENT,
     nome_funcao TEXT NOT NULL UNIQUE,
     descricao TEXT
@@ -31,7 +33,8 @@ CREATE TABLE IF NOT EXISTS permissoes (
 );
 
 -- 4. Relacionamento entre usuarios e funcoes
-CREATE TABLE IF NOT EXISTS usuario_funcoes (
+DROP TABLE IF EXISTS usuario_funcoes;
+CREATE TABLE usuario_funcoes (
     id_usuario INTEGER NOT NULL,
     id_funcao INTEGER NOT NULL,
     PRIMARY KEY (id_usuario, id_funcao),
@@ -40,7 +43,8 @@ CREATE TABLE IF NOT EXISTS usuario_funcoes (
 );
 
 -- 5. Relacionamento entre funcoes e permissoes
-CREATE TABLE IF NOT EXISTS funcao_permissoes (
+DROP TABLE IF EXISTS funcao_permissoes;
+CREATE TABLE funcao_permissoes (
     id_funcao INTEGER NOT NULL,
     id_permissao INTEGER NOT NULL,
     PRIMARY KEY (id_funcao, id_permissao),
@@ -49,7 +53,8 @@ CREATE TABLE IF NOT EXISTS funcao_permissoes (
 );
 
 -- 6. Veiculos
-CREATE TABLE IF NOT EXISTS veiculos (
+DROP TABLE IF EXISTS veiculos;
+CREATE TABLE veiculos (
     id_veiculo INTEGER PRIMARY KEY AUTOINCREMENT,
     id_anunciante INTEGER NOT NULL,
     marca TEXT NOT NULL,
