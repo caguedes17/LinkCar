@@ -70,6 +70,36 @@ CREATE TABLE veiculos (
     FOREIGN KEY (id_anunciante) REFERENCES usuarios(id_usuario)
 );
 
+-- 7 . Favoritos
+DROP TABLE IF EXISTS favoritos;
+CREATE TABLE favoritos (
+    id_usuario INTEGER NOT NULL,
+    id_veiculo INTEGER NOT NULL,
+    data_favorito TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id_usuario, id_veiculo),
+
+    FOREIGN KEY (id_usuario)
+        REFERENCES usuarios(id_usuario),
+
+    FOREIGN KEY (id_veiculo)
+        REFERENCES veiculos(id_veiculo)
+);
+
+-- 8 . Token de recuperação de senha
+DROP TABLE IF EXISTS tokens_recuperacao;
+CREATE TABLE tokens_recuperacao (
+    id_token INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_usuario INTEGER NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    data_expiracao TEXT NOT NULL,
+    utilizado INTEGER NOT NULL DEFAULT 0,
+    data_criacao TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_usuario)
+        REFERENCES usuarios(id_usuario)
+);
+
 -- Dados iniciais: funcoes
 INSERT OR IGNORE INTO funcoes (nome_funcao, descricao) VALUES
 ('Administrador', 'Gerenciamento geral do sistema'),
