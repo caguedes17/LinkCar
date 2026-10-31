@@ -217,134 +217,37 @@ def listar_meus_veiculos(id_usuario):
         """, (id_usuario,))
 
         return cursor.fetchall()
-
     finally:
         conexao.close()
+    
 
-def editar_veiculo(id_usuario, id_veiculo, dados):
+def excluir_veiculo(id_usuario, id_veiculo):
+    """Desativa um anuncio sem apagar o registro."""
     verificar_usuario_ativo(id_usuario)
-    exigir_permissao(id_usuario, "editar_veiculos")
+    exigir_permissao(id_usuario, "excluir_veiculos")
     verificar_propriedade(id_usuario, id_veiculo)
-    validar_dados(dados)
-
-    recursos = dados.get("recursos")
-
-    if recursos is not None:
-        if not isinstance(recursos, list):
-            raise ValueError("Lista de recursos inválida.")
-
-        if any(type(r) is not int or r <= 0 for r in recursos):
-            raise ValueError("IDs de recursos inválidos.")
-
-        if len(recursos) != len(set(recursos)):
-            raise ValueError("Recursos repetidos.")
-
+    perfil = consultar_perfil(id_usuario)
     conexao = conectar()
-
     try:
         cursor = conexao.cursor()
-        perfil = consultar_perfil(id_usuario)
-
         cursor.execute("""
             UPDATE veiculos
-            SET marca = ?,
-                modelo = ?,
-                ano = ?,
-                preco = ?,
-                quilometragem = ?,
-                combustivel = ?,
-                cambio = ?,
-                descricao = ?,
-                carroceria = ?,
-                cor = ?,
-                motor = ?,
-                espaco_interno = ?,
-                estilo_design = ?
+            SET ativo = 0
             WHERE id_veiculo = ?
               AND ativo = 1
-              AND (id_anunciante = ? OR ? = 'Administrador')
-        """, (
-            dados["marca"],
-            dados["modelo"],
-            int(dados["ano"]),
-            float(dados["preco"]),
-            int(dados["quilometragem"]),
-            dados["combustivel"],
-            dados["cambio"],
-            dados.get("descricao", ""),
-            dados["carroceria"],
-            dados["cor"],
-            dados["motor"],
-            dados["espaco_interno"],
-            dados["estilo_design"],
-            id_veiculo,
-            id_usuario,
-            perfil
-        ))
-
+              AND (
+                  id_anunciante = ?
+                  OR ? = 'Administrador'
+              )
+        """, (id_veiculo, id_usuario, perfil))
         if cursor.rowcount != 1:
-            raise ValueError("Veículo não encontrado ou acesso negado.")
-
-        if recursos is not None:
-            cursor.execute("""
-                DELETE FROM veiculo_recursos
-                WHERE id_veiculo = ?
-            """, (id_veiculo,))
-
-            for id_recurso in recursos:
-                cursor.execute("""
-                    INSERT INTO veiculo_recursos
-                    (id_veiculo, id_recurso)
-                    VALUES (?, ?)
-                """, (id_veiculo, id_recurso))
-
+            raise ValueError(
+                "Anuncio inexistente ou acesso negado."
+            )
         conexao.commit()
         return True
-
     except Exception:
         conexao.rollback()
         raise
-
-    finally:
-        conexao.close()
-
-def buscar_veiculo_para_edicao(id_usuario, id_veiculo):
-    verificar_usuario_ativo(id_usuario)
-    exigir_permissao(id_usuario, "editar_veiculos")
-    verificar_propriedade(id_usuario, id_veiculo)
-
-    conexao = conectar()
-
-    try:
-        conexao.row_factory = sqlite3.Row
-        cursor = conexao.cursor()
-
-        cursor.execute("""
-            SELECT *
-            FROM veiculos
-            WHERE id_veiculo = ?
-              AND ativo = 1
-        """, (id_veiculo,))
-
-        resultado = cursor.fetchone()
-
-        if resultado is None:
-            raise ValueError("Veículo não encontrado.")
-
-        dados = dict(resultado)
-
-        cursor.execute("""
-            SELECT id_recurso
-            FROM veiculo_recursos
-            WHERE id_veiculo = ?
-        """, (id_veiculo,))
-
-        dados["recursos"] = [
-            linha["id_recurso"]
-            for linha in cursor.fetchall()
-        ]
-
-        return dados
-
     finally:
         conexao.close()
