@@ -1,9 +1,4 @@
-import sqlite3
-
-def conectar():
-    conexao = sqlite3.connect("linkcar.db")
-    conexao.execute("PRAGMA foreign_keys = ON")
-    return conexao
+from banco import conectar
 
 def consultar_perfil(id_usuario):
     conexao = conectar()

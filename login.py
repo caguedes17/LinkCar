@@ -3,7 +3,7 @@ import sqlite3
 import hashlib
 import secrets
 import getpass
-
+from banco import conectar
 
 def verificar_senha(senha_digitada, senha_armazenada):
     try:
@@ -31,8 +31,8 @@ def verificar_senha(senha_digitada, senha_armazenada):
 def autenticar_usuario(email, senha):
     email = email.strip().lower()
 
-    conexao = sqlite3.connect("linkcar.db")
-    conexao.execute("PRAGMA foreign_keys = ON")
+    conexao = conectar()
+    
 
     try:
         cursor = conexao.cursor()
