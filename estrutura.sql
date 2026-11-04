@@ -1,14 +1,18 @@
--- LINK CAR - Estrutura inicial do banco de dados
+a-- LINKCAR | ESTRUTURA COMPLETA PARA NOVAS INSTALACOES
+-- Inclui tabelas iniciais e os campos / recursos do match.
+-- CRIAR um banco SQLite NOVO e VAZIO para executar este script.
+-- NAO executar no linkcar.db atual que ja possui usuarios e veiculos.
+-- NAO contem DROP TABLE, ALTER TABLE nem transacao BEGIN/COMMIT.
+-- Nao substitui uma migracao de um banco antigo existente.
+
 -- Execute este arquivo em um banco SQLite vazio.
 -- No DB Browser: Arquivo > Importar > Banco de dados a partir de arquivo SQL
 -- ou abra o arquivo no Editor SQL e clique em Executar.
 
 PRAGMA foreign_keys = ON;
-BEGIN TRANSACTION;
 
 -- 1. Usuarios
-DROP TABLE IF EXISTS usuarios;
-CREATE TABLE usuarios (
+CREATE TABLE IF NOT EXISTS usuarios (
     id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
@@ -18,8 +22,7 @@ CREATE TABLE usuarios (
 );
 
 -- 2. Funcoes (papeis do RBAC)
-DROP TABLE IF EXISTS funcoes;
-CREATE TABLE funcoes (
+CREATE TABLE IF NOT EXISTS funcoes (
     id_funcao INTEGER PRIMARY KEY AUTOINCREMENT,
     nome_funcao TEXT NOT NULL UNIQUE,
     descricao TEXT
@@ -33,8 +36,7 @@ CREATE TABLE IF NOT EXISTS permissoes (
 );
 
 -- 4. Relacionamento entre usuarios e funcoes
-DROP TABLE IF EXISTS usuario_funcoes;
-CREATE TABLE usuario_funcoes (
+CREATE TABLE IF NOT EXISTS usuario_funcoes (
     id_usuario INTEGER NOT NULL,
     id_funcao INTEGER NOT NULL,
     PRIMARY KEY (id_usuario, id_funcao),
@@ -43,8 +45,7 @@ CREATE TABLE usuario_funcoes (
 );
 
 -- 5. Relacionamento entre funcoes e permissoes
-DROP TABLE IF EXISTS funcao_permissoes;
-CREATE TABLE funcao_permissoes (
+CREATE TABLE IF NOT EXISTS funcao_permissoes (
     id_funcao INTEGER NOT NULL,
     id_permissao INTEGER NOT NULL,
     PRIMARY KEY (id_funcao, id_permissao),
@@ -53,8 +54,7 @@ CREATE TABLE funcao_permissoes (
 );
 
 -- 6. Veiculos
-DROP TABLE IF EXISTS veiculos;
-CREATE TABLE veiculos (
+CREATE TABLE IF NOT EXISTS veiculos (
     id_veiculo INTEGER PRIMARY KEY AUTOINCREMENT,
     id_anunciante INTEGER NOT NULL,
     marca TEXT NOT NULL,
@@ -67,12 +67,16 @@ CREATE TABLE veiculos (
     descricao TEXT,
     data_cadastro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ativo INTEGER NOT NULL DEFAULT 1,
+    carroceria TEXT,
+    cor TEXT,
+    motor TEXT,
+    espaco_interno TEXT,
+    estilo_design TEXT,
     FOREIGN KEY (id_anunciante) REFERENCES usuarios(id_usuario)
 );
 
 -- 7 . Favoritos
-DROP TABLE IF EXISTS favoritos;
-CREATE TABLE favoritos (
+CREATE TABLE IF NOT EXISTS favoritos (
     id_usuario INTEGER NOT NULL,
     id_veiculo INTEGER NOT NULL,
     data_favorito TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -87,8 +91,7 @@ CREATE TABLE favoritos (
 );
 
 -- 8 . Token de recuperação de senha
-DROP TABLE IF EXISTS tokens_recuperacao;
-CREATE TABLE tokens_recuperacao (
+CREATE TABLE IF NOT EXISTS tokens_recuperacao (
     id_token INTEGER PRIMARY KEY AUTOINCREMENT,
     id_usuario INTEGER NOT NULL,
     token_hash TEXT NOT NULL UNIQUE,
@@ -98,6 +101,20 @@ CREATE TABLE tokens_recuperacao (
 
     FOREIGN KEY (id_usuario)
         REFERENCES usuarios(id_usuario)
+);
+
+-- 9 e 10. Recursos do match (relacionamento N:N com veiculos)
+CREATE TABLE IF NOT EXISTS recursos_tecnologia (
+    id_recurso INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome_recurso TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS veiculo_recursos (
+    id_veiculo INTEGER NOT NULL,
+    id_recurso INTEGER NOT NULL,
+    PRIMARY KEY (id_veiculo, id_recurso),
+    FOREIGN KEY (id_veiculo) REFERENCES veiculos(id_veiculo),
+    FOREIGN KEY (id_recurso) REFERENCES recursos_tecnologia(id_recurso)
 );
 
 -- Dados iniciais: funcoes
@@ -148,4 +165,45 @@ WHERE f.nome_funcao = 'Usuario'
       'gerenciar_favoritos'
   );
 
-COMMIT;
+-- Catalogo de recursos tecnologicos (40 opcoes)
+INSERT OR IGNORE INTO recursos_tecnologia (nome_recurso) VALUES
+('Ar-condicionado'),
+('Direção elétrica'),
+('Bluetooth'),
+('Central multimídia'),
+('Câmera de ré'),
+('Sensor de estacionamento'),
+('GPS integrado'),
+('Carregador por indução'),
+('Chave presencial'),
+('Piloto automático'),
+('Assistente de estacionamento'),
+('Alerta de ponto cego'),
+('Frenagem automática de emergência'),
+('Android Auto'),
+('Apple CarPlay'),
+('Câmera 360 graus'),
+('Sensor de estacionamento dianteiro'),
+('Piloto automático adaptativo'),
+('Alerta de saída de faixa'),
+('Assistente de permanência em faixa'),
+('Alerta de colisão frontal'),
+('Detector de fadiga do motorista'),
+('Monitoramento da pressão dos pneus'),
+('Controle eletrônico de estabilidade'),
+('Controle de tração'),
+('Assistente de partida em rampa'),
+('Airbags laterais'),
+('Fixação ISOFIX'),
+('Faróis de LED'),
+('Acendimento automático dos faróis'),
+('Sensor de chuva'),
+('Painel de instrumentos digital'),
+('Entradas USB-C'),
+('Internet Wi-Fi integrada'),
+('Sistema de som premium'),
+('Ar-condicionado digital'),
+('Bancos com ajuste elétrico'),
+('Bancos aquecidos'),
+('Teto solar'),
+('Partida por botão');
