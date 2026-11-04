@@ -2,7 +2,7 @@ import sqlite3
 import hashlib
 import secrets
 import getpass
-
+from banco import conectar
 
 def gerar_hash(senha):
     salt = secrets.token_bytes(16)
@@ -43,8 +43,8 @@ def cadastrar_usuario(nome, email, senha, perfil):
 
     senha_hash = gerar_hash(senha)
 
-    conexao = sqlite3.connect("linkcar.db")
-    conexao.execute("PRAGMA foreign_keys = ON")
+    conexao = conectar()
+    
 
     try:
         cursor = conexao.cursor()

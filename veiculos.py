@@ -3,15 +3,7 @@ import math
 from pathlib import Path
 
 from permissoes import exigir_permissao, consultar_perfil
-
-
-def conectar():
-    caminho_banco = Path(__file__).resolve().parent / "linkcar.db"
-    if not caminho_banco.is_file():
-        raise FileNotFoundError("Banco linkcar.db nao encontrado na pasta LinkCar.")
-    conexao = sqlite3.connect(caminho_banco)
-    conexao.execute("PRAGMA foreign_keys = ON")
-    return conexao
+from banco import conectar
 
 
 def verificar_usuario_ativo(id_usuario):
