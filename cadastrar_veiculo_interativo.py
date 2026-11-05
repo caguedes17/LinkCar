@@ -1,7 +1,5 @@
 from veiculos import cadastrar_veiculo, conectar
 
-
-# Mostra opções numeradas para o anunciante
 def escolher_opcao(pergunta, opcoes):
     print(f"\n{pergunta}")
 
@@ -20,7 +18,6 @@ def escolher_opcao(pergunta, opcoes):
         print("Opção inválida. Tente novamente.")
 
 
-# Busca os recursos tecnológicos cadastrados no banco
 def selecionar_recursos():
     conexao = conectar()
 
@@ -71,12 +68,12 @@ def selecionar_recursos():
     return selecionados
 
 
-# Cadastro interativo
+
 def main():
     print("===== LINKCAR =====")
     print("CADASTRO DE VEÍCULOS\n")
 
-    # Temporário: anunciante utilizado nos testes
+
     id_usuario = 2
 
     dados = {
