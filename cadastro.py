@@ -87,7 +87,7 @@ if __name__ == "__main__":
     print("       CADASTRO DE USUÁRIO")
     print("=============================")
 
-    nome = input("Digite e sobrenome: ").strip()
+    nome = input("Digite nome e sobrenome: ").strip()
     email = input("Digite seu e-mail: ").strip()
 
     senha = getpass.getpass("Crie sua senha: ")

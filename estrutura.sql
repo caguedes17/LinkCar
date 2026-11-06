@@ -1,4 +1,4 @@
--- LINKCAR | ESTRUTURA COMPLETA PARA NOVAS INSTALACOES
+a-- LINKCAR | ESTRUTURA COMPLETA PARA NOVAS INSTALACOES
 -- Inclui tabelas iniciais e os campos / recursos do match.
 -- CRIAR um banco SQLite NOVO e VAZIO para executar este script.
 -- NAO executar no linkcar.db atual que ja possui usuarios e veiculos.
