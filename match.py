@@ -3,110 +3,157 @@ import sqlite3
 from banco import conectar
 
 
+PESOS = {
+    "preco": 25,
+    "carroceria": 15,
+    "combustivel": 10,
+    "motor": 10,
+    "cor": 5,
+    "marca": 10,
+    "recursos": 10,
+    "espaco_interno": 10,
+    "estilo_design": 5
+}
+
+
 def buscar_veiculos_disponiveis():
     conexao = conectar()
+    conexao.row_factory = sqlite3.Row
 
     try:
-        conexao.row_factory = sqlite3.Row
-        cursor = conexao.cursor()
+        veiculos = conexao.execute("""
+            SELECT v.*
+            FROM veiculos v
+            JOIN usuarios u ON u.id_usuario = v.id_anunciante
+            WHERE v.ativo = 1 AND u.ativo = 1
+        """).fetchall()
 
-        cursor.execute("""
-            SELECT *
-            FROM veiculos
-            WHERE ativo = 1
-            ORDER BY id_veiculo DESC
-        """)
+        resultados = []
 
-        return [dict(linha) for linha in cursor.fetchall()]
+        for linha in veiculos:
+            veiculo = dict(linha)
+
+            recursos = conexao.execute("""
+                SELECT r.nome_recurso
+                FROM recursos_tecnologia r
+                JOIN veiculo_recursos vr
+                    ON vr.id_recurso = r.id_recurso
+                WHERE vr.id_veiculo = ?
+            """, (veiculo["id_veiculo"],)).fetchall()
+
+            veiculo["recursos"] = [r[0] for r in recursos]
+            resultados.append(veiculo)
+
+        return resultados
 
     finally:
         conexao.close()
 
 
+def normalizar(valor):
+    return str(valor or "").strip().casefold()
+
+
 def calcular_compatibilidade(veiculo, preferencias):
-    pesos = {
-        "preco": 25,
-        "carroceria": 15,
-        "combustivel": 10,
-        "motor": 10,
-        "cor": 5,
-        "marca": 10,
-        "recursos": 10,
-        "espaco_interno": 10,
-        "estilo_design": 5
-    }
-
     pontos = 0
-    pontos_possiveis = 0
+    total = 0
 
-    for criterio, peso in pesos.items():
+    for criterio, peso in PESOS.items():
         if criterio in ("preco", "recursos"):
             continue
 
-        preferencia = preferencias.get(criterio)
+        desejado = preferencias.get(criterio)
 
-        if preferencia is None or str(preferencia).strip() == "":
+        if not normalizar(desejado):
             continue
 
-        pontos_possiveis += peso
-        valor_veiculo = veiculo.get(criterio)
+        total += peso
 
-        if (
-            valor_veiculo is not None
-            and str(valor_veiculo).strip().casefold()
-            == str(preferencia).strip().casefold()
-        ):
+        if normalizar(veiculo.get(criterio)) == normalizar(desejado):
             pontos += peso
 
     preco_maximo = preferencias.get("preco")
 
-    if preco_maximo is not None:
-        pontos_possiveis += pesos["preco"]
+    if preco_maximo is not None and preco_maximo != "":
+        if float(veiculo["preco"]) > float(preco_maximo):
+            return None
 
-        if float(veiculo["preco"]) <= float(preco_maximo):
-            pontos += pesos["preco"]
+        total += PESOS["preco"]
+        pontos += PESOS["preco"]
 
-    if pontos_possiveis == 0:
-        return 0
-
-    return round((pontos / pontos_possiveis) * 100)
-
-
-if __name__ == "__main__":
-    veiculos = buscar_veiculos_disponiveis()
-
-    print("===== LINKCAR MATCH =====")
-    print("Veículos disponíveis:", len(veiculos))
-
-    preferencias = {
-        "preco": 100000,
-        "carroceria": "Sedã",
-        "combustivel": "Flex",
-        "cor": "Preto",
-        "marca": "Honda"
+    desejados = {
+        normalizar(r)
+        for r in preferencias.get("recursos", [])
+        if normalizar(r)
     }
 
+    if desejados:
+        disponiveis = {
+            normalizar(r)
+            for r in veiculo.get("recursos", [])
+        }
+
+        total += PESOS["recursos"]
+        pontos += PESOS["recursos"] * (
+            len(desejados & disponiveis) / len(desejados)
+        )
+
+    if total == 0:
+        return 0
+
+    return round(pontos / total * 100)
+
+
+def gerar_ranking(preferencias):
     resultados = []
 
-    for veiculo in veiculos:
-        porcentagem = calcular_compatibilidade(veiculo, preferencias)
+    for veiculo in buscar_veiculos_disponiveis():
+        porcentagem = calcular_compatibilidade(
+            veiculo, preferencias
+        )
+
+        if porcentagem is None:
+            continue
 
         resultados.append({
             "id_veiculo": veiculo["id_veiculo"],
             "marca": veiculo["marca"],
             "modelo": veiculo["modelo"],
+            "preco": veiculo["preco"],
             "porcentagem": porcentagem
         })
 
-    resultados.sort(
-        key=lambda resultado: resultado["porcentagem"],
-        reverse=True
+    return sorted(
+        resultados,
+        key=lambda v: (-v["porcentagem"], v["preco"])
     )
 
-    print("\n===== RESULTADOS DO MATCH =====")
 
-    for resultado in resultados:
+if __name__ == "__main__":
+    preferencias = {
+        "preco": 100000,
+        "carroceria": "Sedã",
+        "combustivel": "Flex",
+        "cor": "Preto",
+        "marca": "Honda",
+        "recursos": [
+            "Bluetooth",
+            "Câmera de ré",
+            "Central multimídia"
+        ]
+    }
+
+    resultados = gerar_ranking(preferencias)
+
+    print("===== LINKCAR MATCH =====")
+    print("Veículos encontrados:", len(resultados))
+
+    for veiculo in resultados:
         print(
-            f'{resultado["marca"]} {resultado["modelo"]}: '
-            f'{resultado["porcentagem"]}% de compatibilidade'
+            f'{veiculo["marca"]} {veiculo["modelo"]} | '
+            f'R$ {veiculo["preco"]:.2f} | '
+            f'{veiculo["porcentagem"]}% match'
         )
+
+    if not resultados:
+        print("Nenhum veículo encontrado dentro do orçamento.")
