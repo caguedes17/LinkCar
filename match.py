@@ -23,90 +23,75 @@ def buscar_veiculos_disponiveis():
         conexao.close()
 
 
-def calcular_compatibilidade(veiculo, preferencias):
-    pesos = {
-        "preco": 25,
-        "carroceria": 15,
-        "combustivel": 10,
-        "motor": 10,
-        "cor": 5,
-        "marca": 10,
-        "recursos": 10,
-        "espaco_interno": 10,
-        "estilo_design": 5
-    }
-
+def calcular_compatibilidade(veiculo, preferencias, detalhar=False):
     pontos = 0
-    pontos_possiveis = 0
+    total = 0
+    detalhes = []
 
-    for criterio, peso in pesos.items():
+    for criterio, peso in PESOS.items():
         if criterio in ("preco", "recursos"):
             continue
-
-        preferencia = preferencias.get(criterio)
-
-        if preferencia is None or str(preferencia).strip() == "":
+        desejado = preferencias.get(criterio)
+        if not normalizar(desejado):
             continue
 
-        pontos_possiveis += peso
-        valor_veiculo = veiculo.get(criterio)
-
-        if (
-            valor_veiculo is not None
-            and str(valor_veiculo).strip().casefold()
-            == str(preferencia).strip().casefold()
-        ):
+        total += peso
+        atual = veiculo.get(criterio)
+         if not normalizar(atual):
+            status = "não informado"
+        elif normalizar(atual) == normalizar(desejado):
             pontos += peso
+            status = "atende"
+        else:
+            status = "não atende"
 
+        detalhes.append({
+             "criterio": criterio,
+              "desejado": desejado,
+              "encontrado": atual,
+              "status": status
+            })
+        
     preco_maximo = preferencias.get("preco")
-
-    if preco_maximo is not None:
-        pontos_possiveis += pesos["preco"]
-
-        if float(veiculo["preco"]) <= float(preco_maximo):
-            pontos += pesos["preco"]
-
-    if pontos_possiveis == 0:
-        return 0
-
-    return round((pontos / pontos_possiveis) * 100)
-
-
-if __name__ == "__main__":
-    veiculos = buscar_veiculos_disponiveis()
-
-    print("===== LINKCAR MATCH =====")
-    print("Veículos disponíveis:", len(veiculos))
-
-    preferencias = {
-        "preco": 100000,
-        "carroceria": "Sedã",
-        "combustivel": "Flex",
-        "cor": "Preto",
-        "marca": "Honda"
-    }
-
-    resultados = []
-
-    for veiculo in veiculos:
-        porcentagem = calcular_compatibilidade(veiculo, preferencias)
-
-        resultados.append({
-            "id_veiculo": veiculo["id_veiculo"],
-            "marca": veiculo["marca"],
-            "modelo": veiculo["modelo"],
-            "porcentagem": porcentagem
+    if preco_maximo not in (None, ""):
+         teto = float(preco_maximo)
+         if teto <= 0 or teto == float("inf"):
+             raise ValueError("Preço máximo inválido")
+         if float(veiculo["preco"]) > teto:
+             return None
+         total += PESOS["preco"]
+         pontos += PESOS["preco"]
+         detalhes.append({
+             "criterio": "preco",
+             "desejado": teto,
+             "encontrado": veiculo["preco"],
+             "status": "atende"
         })
 
-    resultados.sort(
-        key=lambda resultado: resultado["porcentagem"],
-        reverse=True
-    )
-
-    print("\n===== RESULTADOS DO MATCH =====")
-
-    for resultado in resultados:
-        print(
-            f'{resultado["marca"]} {resultado["modelo"]}: '
-            f'{resultado["porcentagem"]}% de compatibilidade'
-        )
+    desejados = {
+        normalizar(r): r for r in preferencias.get("recursos", [])
+         if normalizar(r)
+    }
+     if desejados:
+        disponiveis = {
+            normalizar(r) for r in veiculo.get("recursos", [])
+        }
+        atendidos = [r for chave, r in desejados.items()
+                     if chave in disponiveis]
+        faltantes = [r for chave, r in desejados.items()
+                     if chave not in disponiveis]
+        total += PESOS["recursos"]
+        pontos += PESOS["recursos"] * len(atendidos) / len(desejados)
+        detalhes.append({
+            "criterio": "recursos",
+            "atendidos": atendidos,
+            "faltantes": faltantes,
+            "status": "atende" if not faltantes else "parcial"
+                     if atendidos else "não atende"
+        })
+    
+    porcentagem = round(pontos / total * 100) if total else 0
+    if detalhar:
+        return {"porcentagem": porcentagem, "detalhes": detalhes}
+    return porcentagem
+    
