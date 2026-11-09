@@ -138,15 +138,33 @@ def main():
         print("Nenhum veículo encontrado com os filtros escolhidos.")
         return
 
+    
     for posicao, veiculo in enumerate(resultados, 1):
         preco = f'{veiculo["preco"]:,.2f}'
         preco = preco.replace(",", "X").replace(".", ",").replace("X", ".")
 
         print(
-            f'{posicao}º - {veiculo["marca"]} {veiculo["modelo"]} | '
+            f'\n{posicao}º - {veiculo["marca"]} {veiculo["modelo"]} | '
             f'R$ {preco} | '
             f'{veiculo["porcentagem"]}% match'
         )
+
+        print("\nCritérios atendidos:")
+        if veiculo["atendidos"]:
+            for criterio in veiculo["atendidos"]:
+                print(f"  [OK] {criterio}")
+        else:
+            print("  Nenhum critério atendido.")
+
+        print("\nCritérios não atendidos:")
+        if veiculo["nao_atendidos"]:
+            for criterio in veiculo["nao_atendidos"]:
+                print(f"  [X] {criterio}")
+        else:
+            print("  Nenhum critério não atendido.")
+
+        print("-" * 50)
+
 
 
 if __name__ == "__main__":
