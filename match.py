@@ -103,6 +103,59 @@ def calcular_compatibilidade(veiculo, preferencias):
 
     return round(pontos / total * 100)
 
+def explicar_compatibilidade(veiculo, preferencias):
+    atendidos = []
+    nao_atendidos = []
+
+    nomes = {
+        "carroceria": "Carroceria",
+        "combustivel": "Combustível",
+        "motor": "Motor",
+        "cor": "Cor",
+        "marca": "Marca",
+        "espaco_interno": "Espaço interno",
+        "estilo_design": "Estilo e design"
+    }
+
+    preco_maximo = preferencias.get("preco")
+
+    if preco_maximo not in (None, ""):
+        if float(veiculo["preco"]) <= float(preco_maximo):
+            atendidos.append("Preço dentro do orçamento")
+        else:
+            nao_atendidos.append("Preço acima do orçamento")
+
+    for criterio, nome in nomes.items():
+        desejado = preferencias.get(criterio)
+
+        if normalizar(desejado) in ("", "qualquer"):
+            continue
+
+        atual = veiculo.get(criterio)
+
+        if normalizar(atual) == normalizar(desejado):
+            atendidos.append(f"{nome}: {atual}")
+        else:
+            nao_atendidos.append(
+                f"{nome}: desejado {desejado}, veículo {atual or 'não informado'}"
+            )
+
+    disponiveis = {
+        normalizar(recurso)
+        for recurso in veiculo.get("recursos", [])
+    }
+
+    for recurso in preferencias.get("recursos", []):
+        if normalizar(recurso) in disponiveis:
+            atendidos.append(f"Possui {recurso}")
+        else:
+            nao_atendidos.append(f"Não possui {recurso}")
+
+    return {
+        "atendidos": atendidos,
+        "nao_atendidos": nao_atendidos
+    }
+
 
 def gerar_ranking(preferencias):
     resultados = []
@@ -115,12 +168,19 @@ def gerar_ranking(preferencias):
         if porcentagem is None:
             continue
 
+       
+        explicacao = explicar_compatibilidade(
+            veiculo, preferencias
+        )
+
         resultados.append({
             "id_veiculo": veiculo["id_veiculo"],
             "marca": veiculo["marca"],
             "modelo": veiculo["modelo"],
             "preco": veiculo["preco"],
-            "porcentagem": porcentagem
+            "porcentagem": porcentagem,
+            "atendidos": explicacao["atendidos"],
+            "nao_atendidos": explicacao["nao_atendidos"]
         })
 
     return sorted(
