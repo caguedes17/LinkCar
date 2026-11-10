@@ -1,0 +1,153 @@
+[1mdiff --git a/veiculos.py b/veiculos.py[m
+[1mindex b8f50f6..2d6cd54 100644[m
+[1m--- a/veiculos.py[m
+[1m+++ b/veiculos.py[m
+[36m@@ -217,134 +217,37 @@[m [mdef listar_meus_veiculos(id_usuario):[m
+         """, (id_usuario,))[m
+ [m
+         return cursor.fetchall()[m
+[31m-[m
+     finally:[m
+         conexao.close()[m
+[32m+[m[41m    [m
+ [m
+[31m-def editar_veiculo(id_usuario, id_veiculo, dados):[m
+[32m+[m[32mdef excluir_veiculo(id_usuario, id_veiculo):[m
+[32m+[m[32m    """Desativa um anuncio sem apagar o registro."""[m
+     verificar_usuario_ativo(id_usuario)[m
+[31m-    exigir_permissao(id_usuario, "editar_veiculos")[m
+[32m+[m[32m    exigir_permissao(id_usuario, "excluir_veiculos")[m
+     verificar_propriedade(id_usuario, id_veiculo)[m
+[31m-    validar_dados(dados)[m
+[31m-[m
+[31m-    recursos = dados.get("recursos")[m
+[31m-[m
+[31m-    if recursos is not None:[m
+[31m-        if not isinstance(recursos, list):[m
+[31m-            raise ValueError("Lista de recursos inválida.")[m
+[31m-[m
+[31m-        if any(type(r) is not int or r <= 0 for r in recursos):[m
+[31m-            raise ValueError("IDs de recursos inválidos.")[m
+[31m-[m
+[31m-        if len(recursos) != len(set(recursos)):[m
+[31m-            raise ValueError("Recursos repetidos.")[m
+[31m-[m
+[32m+[m[32m    perfil = consultar_perfil(id_usuario)[m
+     conexao = conectar()[m
+[31m-[m
+     try:[m
+         cursor = conexao.cursor()[m
+[31m-        perfil = consultar_perfil(id_usuario)[m
+[31m-[m
+         cursor.execute("""[m
+             UPDATE veiculos[m
+[31m-            SET marca = ?,[m
+[31m-                modelo = ?,[m
+[31m-                ano = ?,[m
+[31m-                preco = ?,[m
+[31m-                quilometragem = ?,[m
+[31m-                combustivel = ?,[m
+[31m-                cambio = ?,[m
+[31m-                descricao = ?,[m
+[31m-                carroceria = ?,[m
+[31m-                cor = ?,[m
+[31m-                motor = ?,[m
+[31m-                espaco_interno = ?,[m
+[31m-                estilo_design = ?[m
+[32m+[m[32m            SET ativo = 0[m
+             WHERE id_veiculo = ?[m
+               AND ativo = 1[m
+[31m-              AND (id_anunciante = ? OR ? = 'Administrador')[m
+[31m-        """, ([m
+[31m-            dados["marca"],[m
+[31m-            dados["modelo"],[m
+[31m-            int(dados["ano"]),[m
+[31m-            float(dados["preco"]),[m
+[31m-            int(dados["quilometragem"]),[m
+[31m-            dados["combustivel"],[m
+[31m-            dados["cambio"],[m
+[31m-            dados.get("descricao", ""),[m
+[31m-            dados["carroceria"],[m
+[31m-            dados["cor"],[m
+[31m-            dados["motor"],[m
+[31m-            dados["espaco_interno"],[m
+[31m-            dados["estilo_design"],[m
+[31m-            id_veiculo,[m
+[31m-            id_usuario,[m
+[31m-            perfil[m
+[31m-        ))[m
+[31m-[m
+[32m+[m[32m              AND ([m
+[32m+[m[32m                  id_anunciante = ?[m
+[32m+[m[32m                  OR ? = 'Administrador'[m
+[32m+[m[32m              )[m
+[32m+[m[32m        """, (id_veiculo, id_usuario, perfil))[m
+         if cursor.rowcount != 1:[m
+[31m-            raise ValueError("Veículo não encontrado ou acesso negado.")[m
+[31m-[m
+[31m-        if recursos is not None:[m
+[31m-            cursor.execute("""[m
+[31m-                DELETE FROM veiculo_recursos[m
+[31m-                WHERE id_veiculo = ?[m
+[31m-            """, (id_veiculo,))[m
+[31m-[m
+[31m-            for id_recurso in recursos:[m
+[31m-                cursor.execute("""[m
+[31m-                    INSERT INTO veiculo_recursos[m
+[31m-                    (id_veiculo, id_recurso)[m
+[31m-                    VALUES (?, ?)[m
+[31m-                """, (id_veiculo, id_recurso))[m
+[31m-[m
+[32m+[m[32m            raise ValueError([m
+[32m+[m[32m                "Anuncio inexistente ou acesso negado."[m
+[32m+[m[32m            )[m
+         conexao.commit()[m
+         return True[m
+[31m-[m
+     except Exception:[m
+         conexao.rollback()[m
+         raise[m
+[31m-[m
+[31m-    finally:[m
+[31m-        conexao.close()[m
+[31m-[m
+[31m-def buscar_veiculo_para_edicao(id_usuario, id_veiculo):[m
+[31m-    verificar_usuario_ativo(id_usuario)[m
+[31m-    exigir_permissao(id_usuario, "editar_veiculos")[m
+[31m-    verificar_propriedade(id_usuario, id_veiculo)[m
+[31m-[m
+[31m-    conexao = conectar()[m
+[31m-[m
+[31m-    try:[m
+[31m-        conexao.row_factory = sqlite3.Row[m
+[31m-        cursor = conexao.cursor()[m
+[31m-[m
+[31m-        cursor.execute("""[m
+[31m-            SELECT *[m
+[31m-            FROM veiculos[m
+[31m-            WHERE id_veiculo = ?[m
+[31m-              AND ativo = 1[m
+[31m-        """, (id_veiculo,))[m
+[31m-[m
+[31m-        resultado = cursor.fetchone()[m
+[31m-[m
+[31m-        if resultado is None:[m
+[31m-            raise ValueError("Veículo não encontrado.")[m
+[31m-[m
+[31m-        dados = dict(resultado)[m
+[31m-[m
+[31m-        cursor.execute("""[m
+[31m-            SELECT id_recurso[m
+[31m-            FROM veiculo_recursos[m
+[31m-            WHERE id_veiculo = ?[m
+[31m-        """, (id_veiculo,))[m
+[31m-[m
+[31m-        dados["recursos"] = [[m
+[31m-            linha["id_recurso"][m
+[31m-            for linha in cursor.fetchall()[m
+[31m-        ][m
+[31m-[m
+[31m-        return dados[m
+[31m-[m
+     finally:[m
+         conexao.close()[m

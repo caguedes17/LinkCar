@@ -1,4 +1,5 @@
-a-- LINKCAR | ESTRUTURA COMPLETA PARA NOVAS INSTALACOES
+-- SQLITE: VARCHAR(n) tem afinidade TEXT e nao limita automaticamente n caracteres.
+-- LINKCAR | ESTRUTURA COMPLETA PARA NOVAS INSTALACOES
 -- Inclui tabelas iniciais e os campos / recursos do match.
 -- CRIAR um banco SQLite NOVO e VAZIO para executar este script.
 -- NAO executar no linkcar.db atual que ja possui usuarios e veiculos.
@@ -14,25 +15,25 @@ PRAGMA foreign_keys = ON;
 -- 1. Usuarios
 CREATE TABLE IF NOT EXISTS usuarios (
     id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    senha_hash TEXT NOT NULL,
-    data_criacao TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    nome VARCHAR(120) NOT NULL,
+    email VARCHAR(254) NOT NULL UNIQUE,
+    senha_hash VARCHAR(255) NOT NULL,
+    data_criacao VARCHAR(32) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ativo INTEGER NOT NULL DEFAULT 1
 );
 
 -- 2. Funcoes (papeis do RBAC)
 CREATE TABLE IF NOT EXISTS funcoes (
     id_funcao INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome_funcao TEXT NOT NULL UNIQUE,
-    descricao TEXT
+    nome_funcao VARCHAR(80) NOT NULL UNIQUE,
+    descricao VARCHAR(2000)
 );
 
 -- 3. Permissoes
 CREATE TABLE IF NOT EXISTS permissoes (
     id_permissao INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome_permissao TEXT NOT NULL UNIQUE,
-    descricao TEXT
+    nome_permissao VARCHAR(80) NOT NULL UNIQUE,
+    descricao VARCHAR(2000)
 );
 
 -- 4. Relacionamento entre usuarios e funcoes
@@ -57,21 +58,21 @@ CREATE TABLE IF NOT EXISTS funcao_permissoes (
 CREATE TABLE IF NOT EXISTS veiculos (
     id_veiculo INTEGER PRIMARY KEY AUTOINCREMENT,
     id_anunciante INTEGER NOT NULL,
-    marca TEXT NOT NULL,
-    modelo TEXT NOT NULL,
+    marca VARCHAR(80) NOT NULL,
+    modelo VARCHAR(120) NOT NULL,
     ano INTEGER NOT NULL,
     preco REAL NOT NULL,
     quilometragem INTEGER,
-    combustivel TEXT,
-    cambio TEXT,
-    descricao TEXT,
-    data_cadastro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    combustivel VARCHAR(40),
+    cambio VARCHAR(40),
+    descricao VARCHAR(2000),
+    data_cadastro VARCHAR(32) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ativo INTEGER NOT NULL DEFAULT 1,
-    carroceria TEXT,
-    cor TEXT,
-    motor TEXT,
-    espaco_interno TEXT,
-    estilo_design TEXT,
+    carroceria VARCHAR(40),
+    cor VARCHAR(40),
+    motor VARCHAR(40),
+    espaco_interno VARCHAR(40),
+    estilo_design VARCHAR(40),
     FOREIGN KEY (id_anunciante) REFERENCES usuarios(id_usuario)
 );
 
@@ -79,7 +80,7 @@ CREATE TABLE IF NOT EXISTS veiculos (
 CREATE TABLE IF NOT EXISTS favoritos (
     id_usuario INTEGER NOT NULL,
     id_veiculo INTEGER NOT NULL,
-    data_favorito TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data_favorito VARCHAR(32) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id_usuario, id_veiculo),
 
@@ -94,10 +95,10 @@ CREATE TABLE IF NOT EXISTS favoritos (
 CREATE TABLE IF NOT EXISTS tokens_recuperacao (
     id_token INTEGER PRIMARY KEY AUTOINCREMENT,
     id_usuario INTEGER NOT NULL,
-    token_hash TEXT NOT NULL UNIQUE,
-    data_expiracao TEXT NOT NULL,
+    token_hash VARCHAR(255) NOT NULL UNIQUE,
+    data_expiracao VARCHAR(32) NOT NULL,
     utilizado INTEGER NOT NULL DEFAULT 0,
-    data_criacao TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data_criacao VARCHAR(32) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (id_usuario)
         REFERENCES usuarios(id_usuario)
@@ -106,7 +107,7 @@ CREATE TABLE IF NOT EXISTS tokens_recuperacao (
 -- 9 e 10. Recursos do match (relacionamento N:N com veiculos)
 CREATE TABLE IF NOT EXISTS recursos_tecnologia (
     id_recurso INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome_recurso TEXT NOT NULL UNIQUE
+    nome_recurso VARCHAR(120) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS veiculo_recursos (

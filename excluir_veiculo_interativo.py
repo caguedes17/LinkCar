@@ -3,7 +3,7 @@ def main():
     print("===== LINKCAR =====")
     print("DESATIVAR MEU ANUNCIO\n")
     # Somente para teste local. Descubra o ID no SQLite.
-    id_usuario = int(input("ID do anunciante de teste: "))
+    id_usuario = int(input("ID do anunciante: "))
     veiculos = listar_meus_veiculos(id_usuario)
     if not veiculos:
         print("Nenhum anuncio ativo encontrado.")
