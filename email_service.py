@@ -2,6 +2,9 @@ import os
 import smtplib
 import ssl
 from email.message import EmailMessage
+from dotenv import load_dotenv
+
+load_dotenv()
 def enviar_email(destinatario, assunto, mensagem):
     servidor = os.environ["SMTP_HOST"]
     porta = int(os.environ.get("SMTP_PORT", "587"))
