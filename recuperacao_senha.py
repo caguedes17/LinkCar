@@ -1,14 +1,29 @@
+
+import os
 import hashlib
 import secrets
 import sqlite3
+
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlencode
+
+from dotenv import load_dotenv
 
 from banco import conectar
+from cadastro import gerar_hash
+from email_service import enviar_email
+
+
+load_dotenv()
 
 
 def solicitar_recuperacao(email):
     email = email.strip().lower()
-    mensagem = "Se o e-mail estiver cadastrado, as instruções serão enviadas."
+
+    mensagem = (
+        "Se o e-mail estiver cadastrado, "
+        "as instruções serão enviadas."
+    )
 
     conexao = conectar()
 
@@ -60,6 +75,7 @@ def solicitar_recuperacao(email):
     finally:
         conexao.close()
 
+
 def validar_token(token):
     if not isinstance(token, str) or not token:
         return None
@@ -98,8 +114,6 @@ def validar_token(token):
     finally:
         conexao.close()
 
-from cadastro import gerar_hash
-
 
 def redefinir_senha(token, nova_senha):
     if not isinstance(nova_senha, str) or len(nova_senha) < 8:
@@ -120,7 +134,8 @@ def redefinir_senha(token, nova_senha):
         resultado = conexao.execute("""
             SELECT t.id_token, t.id_usuario, t.data_expiracao
             FROM tokens_recuperacao t
-            JOIN usuarios u ON u.id_usuario = t.id_usuario
+            JOIN usuarios u
+                ON u.id_usuario = t.id_usuario
             WHERE t.token_hash = ?
               AND t.utilizado = 0
               AND u.ativo = 1
@@ -165,35 +180,51 @@ def redefinir_senha(token, nova_senha):
     finally:
         conexao.close()
 
-import os
-from urllib.parse import urlencode
-from email_service import enviar_email
 
 def enviar_recuperacao(email):
     email = email.strip().lower()
+
     mensagem_padrao = (
         "Se o e-mail estiver cadastrado, "
         "as instruções serão enviadas."
     )
+
+    url_base = os.getenv("APP_BASE_URL", "").strip().rstrip("/")
+
+    if not url_base.startswith(("http://", "https://")):
+        raise ValueError(
+            "Configure APP_BASE_URL no arquivo .env."
+        )
+
     token, _ = solicitar_recuperacao(email)
+
     if token is None:
         return mensagem_padrao
-    url_base = os.getenv("APP_BASE_URL", "").rstrip("/")
-    if not url_base.startswith(("http://", "https://")):
-        raise ValueError("Configure APP_BASE_URL no arquivo .env.")
+
     parametros = urlencode({"token": token})
+
     link = f"{url_base}/redefinir-senha?{parametros}"
+
     assunto = "LinkCar - Recuperação de senha"
+
     mensagem = f"""Olá!
-Recebemos uma solicitação de recuperação
- de senha para sua conta LinkCar.
+
+Recebemos uma solicitação de recuperação de senha
+para sua conta LinkCar.
+
 Acesse o link abaixo para criar uma nova senha:
+
 {link}
-Este link é válido por 10 minutos e só
-pode ser utilizado uma vez.
+
+Este link é válido por 10 minutos
+e pode ser utilizado somente uma vez.
+
 Se você não solicitou a recuperação,
 ignore esta mensagem.
+
 Equipe LinkCar
 """
+
     enviar_email(email, assunto, mensagem)
+
     return mensagem_padrao
