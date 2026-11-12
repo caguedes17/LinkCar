@@ -1,6 +1,0 @@
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=linkcar9000@gmail.com
-SMTP_PASSWORD=wpiv ecec jjlz spsu
-SMTP_FROM=LinkCar <linkcar9000@gmail.com>
-APP_BASE_URL=http://127.0.0.1:5000
