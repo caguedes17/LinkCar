@@ -1,4 +1,3 @@
-
 import hashlib
 import secrets
 import sqlite3
@@ -165,4 +164,36 @@ def redefinir_senha(token, nova_senha):
 
     finally:
         conexao.close()
-    
+
+import os
+from urllib.parse import urlencode
+from email_service import enviar_email
+
+def enviar_recuperacao(email):
+    email = email.strip().lower()
+    mensagem_padrao = (
+        "Se o e-mail estiver cadastrado, "
+        "as instruções serão enviadas."
+    )
+    token, _ = solicitar_recuperacao(email)
+    if token is None:
+        return mensagem_padrao
+    url_base = os.getenv("APP_BASE_URL", "").rstrip("/")
+    if not url_base.startswith(("http://", "https://")):
+        raise ValueError("Configure APP_BASE_URL no arquivo .env.")
+    parametros = urlencode({"token": token})
+    link = f"{url_base}/redefinir-senha?{parametros}"
+    assunto = "LinkCar - Recuperação de senha"
+    mensagem = f"""Olá!
+Recebemos uma solicitação de recuperação
+ de senha para sua conta LinkCar.
+Acesse o link abaixo para criar uma nova senha:
+{link}
+Este link é válido por 10 minutos e só
+pode ser utilizado uma vez.
+Se você não solicitou a recuperação,
+ignore esta mensagem.
+Equipe LinkCar
+"""
+    enviar_email(email, assunto, mensagem)
+    return mensagem_padrao
