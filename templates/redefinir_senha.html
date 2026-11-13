@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <title>Redefinir senha | LinkCar</title>
+</head>
+<body>
+    <h1>Redefinir senha</h1>
+    <form method="post">
+        <input type="hidden" name="token" value="{{ token }}">
+        <label for="senha">Nova senha</label>
+        <input id="senha" name="senha" type="password"
+               minlength="8" required>
+        <label for="confirmar">Confirme a nova senha</label>
+        <input id="confirmar" name="confirmar" type="password"
+               minlength="8" required>
+        <button type="submit">Salvar nova senha</button>
+    </form>
+</body>
+</html>
