@@ -11,6 +11,22 @@ from permissoes import verificar_permissao
 from recuperacao_senha import redefinir_senha, validar_token
 load_dotenv(Path(__file__).with_name(".env"))
 app = Flask(__name__)
+load_dotenv()
+app.config["SECRET_KEY"] = os.environ["FLASK_SECRET_KEY"]
+@app.post("/api/login")
+def api_login():
+    dados = request.get_json(silent=True)
+    if not isinstance(dados, dict):
+        return jsonify(erro="Envie um objeto JSON."), 400
+    email, senha = dados.get("email"), dados.get("senha")
+    if not isinstance(email, str) or not isinstance(senha, str):
+        return jsonify(erro="Informe e-mail e senha."), 400
+    session.clear()
+    sucesso, usuario = autenticar_usuario(email, senha)
+    if not sucesso:
+        return jsonify(erro="E-mail ou senha inválidos."), 401
+    session["id_usuario"] = usuario["id_usuario"]
+    return jsonify(nome=usuario["nome"], perfil=usuario["perfil"])
 chave_sessao = os.getenv("FLASK_SECRET_KEY")
 if not chave_sessao:
     raise RuntimeError("Configure FLASK_SECRET_KEY no arquivo .env.")
