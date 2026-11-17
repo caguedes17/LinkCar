@@ -10,7 +10,11 @@ from banco import conectar
 from login import autenticar_usuario
 from match import PESOS, gerar_ranking
 from permissoes import verificar_permissao
-from recuperacao_senha import redefinir_senha, validar_token
+from recuperacao_senha import (
+    redefinir_senha,
+    validar_token,
+    enviar_recuperacao,
+)
 
 # Carrega o .env da pasta do projeto, antes de ler qualquer variável
 load_dotenv(Path(__file__).with_name(".env"))
