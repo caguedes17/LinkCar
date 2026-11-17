@@ -171,3 +171,21 @@ def api_match():
         return jsonify(erro="Confira os critérios informados."), 400
 
     return jsonify(resultados=gerar_ranking(preferencias))
+
+@app.post("/api/recuperar-senha")
+def api_recuperar_senha():
+    dados = request.get_json(silent=True)
+    if not isinstance(dados, dict):
+        return jsonify(erro="Envie um objeto JSON."), 400
+    email = dados.get("email")
+    if not isinstance(email, str) or not (1 <= len(email.strip()) <= 254):
+        return jsonify(erro="Informe um e-mail valido."), 400
+    try:
+        enviar_recuperacao(email)
+    except Exception:
+        app.logger.exception("Falha na recuperacao de senha")
+        return jsonify(erro="Servico temporariamente indisponivel."), 503
+    return jsonify(mensagem=(
+        "Se o e-mail estiver cadastrado, "
+        "as instrucoes serao enviadas."
+    )), 200
