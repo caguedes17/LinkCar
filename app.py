@@ -10,19 +10,26 @@ from banco import conectar
 from login import autenticar_usuario
 from match import PESOS, gerar_ranking
 from permissoes import verificar_permissao
-from recuperacao_senha import redefinir_senha, validar_token
+from recuperacao_senha import (
+    redefinir_senha,
+    validar_token,
+    enviar_recuperacao,
+)
 
-
-load_dotenv(Path(__file__).resolve().with_name(".env"))
+# Carrega o .env da pasta do projeto, antes de ler qualquer variável
+load_dotenv(Path(__file__).with_name(".env"))
 
 app = Flask(__name__)
 
 chave_sessao = os.getenv("FLASK_SECRET_KEY")
 if not chave_sessao:
-    raise RuntimeError("Configure FLASK_SECRET_KEY no .env ao lado do app.py.")
-
+    raise RuntimeError("Configure FLASK_SECRET_KEY no arquivo .env.")
 app.config["SECRET_KEY"] = chave_sessao
 
+
+# ==========================================
+# FUNÇÕES AUXILIARES
+# ==========================================
 
 def verificar_acesso_api(permissao):
     id_usuario = session.get("id_usuario")
@@ -33,7 +40,7 @@ def verificar_acesso_api(permissao):
     with closing(conectar()) as conexao:
         usuario_ativo = conexao.execute(
             "SELECT 1 FROM usuarios WHERE id_usuario = ? AND ativo = 1",
-            (id_usuario,),
+            (id_usuario,)
         ).fetchone()
 
     if usuario_ativo is None:
@@ -58,7 +65,6 @@ def validar_preferencias_api(dados):
                 not isinstance(recurso, str) for recurso in valor
             ):
                 return None
-
             preferencias[campo] = [
                 recurso.strip() for recurso in valor if recurso.strip()
             ]
@@ -66,15 +72,12 @@ def validar_preferencias_api(dados):
         elif campo == "preco":
             if isinstance(valor, bool):
                 return None
-
             try:
                 preco = float(valor)
             except (TypeError, ValueError, OverflowError):
                 return None
-
             if not math.isfinite(preco) or preco < 0:
                 return None
-
             preferencias[campo] = preco
 
         elif not isinstance(valor, str):
@@ -85,6 +88,10 @@ def validar_preferencias_api(dados):
 
     return preferencias
 
+
+# ==========================================
+# PÁGINAS
+# ==========================================
 
 @app.route("/redefinir-senha", methods=["GET", "POST"])
 def pagina_redefinir_senha():
@@ -107,6 +114,10 @@ def pagina_redefinir_senha():
     return mensagem, (200 if sucesso else 400)
 
 
+# ==========================================
+# API: LOGIN E LOGOUT
+# ==========================================
+
 @app.post("/api/login")
 def api_login():
     dados = request.get_json(silent=True)
@@ -127,7 +138,6 @@ def api_login():
         return jsonify(erro="E-mail ou senha inválidos."), 401
 
     session["id_usuario"] = usuario["id_usuario"]
-
     return jsonify(nome=usuario["nome"], perfil=usuario["perfil"])
 
 
@@ -137,10 +147,13 @@ def api_logout():
     return jsonify(mensagem="Logout realizado com sucesso.")
 
 
+# ==========================================
+# API: ADMIN E MATCH
+# ==========================================
+
 @app.get("/api/admin/acesso")
 def api_admin_acesso():
     erro = verificar_acesso_api("gerenciar_usuarios")
-
     if erro is not None:
         return erro
 
@@ -150,13 +163,29 @@ def api_admin_acesso():
 @app.post("/api/match")
 def api_match():
     erro = verificar_acesso_api("consultar_veiculos")
-
     if erro is not None:
         return erro
 
     preferencias = validar_preferencias_api(request.get_json(silent=True))
-
     if preferencias is None:
         return jsonify(erro="Confira os critérios informados."), 400
 
     return jsonify(resultados=gerar_ranking(preferencias))
+
+@app.post("/api/recuperar-senha")
+def api_recuperar_senha():
+    dados = request.get_json(silent=True)
+    if not isinstance(dados, dict):
+        return jsonify(erro="Envie um objeto JSON."), 400
+    email = dados.get("email")
+    if not isinstance(email, str) or not (1 <= len(email.strip()) <= 254):
+        return jsonify(erro="Informe um e-mail valido."), 400
+    try:
+        enviar_recuperacao(email)
+    except Exception:
+        app.logger.exception("Falha na recuperacao de senha")
+        return jsonify(erro="Servico temporariamente indisponivel."), 503
+    return jsonify(mensagem=(
+        "Se o e-mail estiver cadastrado, "
+        "as instrucoes serao enviadas."
+    )), 200
