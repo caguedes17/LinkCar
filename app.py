@@ -4,6 +4,7 @@ import sqlite3
 from veiculos import cadastrar_veiculo
 from contextlib import closing
 from pathlib import Path
+from veiculos import buscar_veiculo_para_edicao, editar_veiculo
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request, session
@@ -223,3 +224,36 @@ def api_cadastrar_veiculo():
     except sqlite3.IntegrityError:
         return jsonify(erro="Confira os dados e os IDs dos recursos."), 400
     return jsonify(id_veiculo=id_veiculo), 201
+
+@app.patch("/api/veiculos/<int:id_veiculo>")
+def api_editar_veiculo(id_veiculo):
+    erro = verificar_acesso_api("editar_veiculos")
+    if erro is not None:
+        return erro
+    alteracoes = request.get_json(silent=True)
+    if not isinstance(alteracoes, dict) or not alteracoes:
+        return jsonify(erro="Informe os dados que deseja alterar."), 400
+    campos_editaveis = {
+        "marca", "modelo", "ano", "preco", "quilometragem",
+        "combustivel", "cambio", "descricao", "carroceria",
+        "cor", "motor", "espaco_interno", "estilo_design", "recursos"
+    }
+    if set(alteracoes) - campos_editaveis:
+        return jsonify(erro="Existem campos nao permitidos."), 400
+    try:
+        dados = buscar_veiculo_para_edicao(
+            session["id_usuario"], id_veiculo
+        )
+        dados.update(alteracoes)
+        editar_veiculo(session["id_usuario"], id_veiculo, dados)
+    except PermissionError:
+        return jsonify(erro="Acesso negado."), 403
+    except ValueError as erro:
+        return jsonify(erro=str(erro)), 400
+    except (TypeError, OverflowError):
+        return jsonify(erro="Dados invalidos."), 400
+    except sqlite3.IntegrityError:
+        return jsonify(erro="Confira os recursos informados."), 400
+    return jsonify(
+        mensagem="Veiculo atualizado com sucesso!",
+        id_veiculo=id_veiculo
