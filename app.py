@@ -1,5 +1,7 @@
 import math
 import os
+import sqlite3
+from veiculos import cadastrar_veiculo
 from contextlib import closing
 from pathlib import Path
 
@@ -189,3 +191,35 @@ def api_recuperar_senha():
         "Se o e-mail estiver cadastrado, "
         "as instrucoes serao enviadas."
     )), 200
+
+@app.post("/api/veiculos")
+def api_cadastrar_veiculo():
+    erro = verificar_acesso_api("cadastrar_veiculos")
+    if erro is not None:
+        return erro
+    dados = request.get_json(silent=True)
+    if not isinstance(dados, dict):
+        return jsonify(erro="Envie os dados do veículo em JSON."), 400
+    campos_texto = (
+        "marca", "modelo", "combustivel", "cambio", "carroceria",
+        "cor", "motor", "espaco_interno", "estilo_design", "descricao",
+    )
+    for campo in campos_texto:
+        if campo in dados and not isinstance(dados[campo], str):
+            return jsonify(erro=f"O campo {campo} deve ser texto."), 400
+    for campo in ("ano", "quilometragem"):
+        if type(dados.get(campo)) is not int:
+            return jsonify(erro=f"O campo {campo} deve ser um inteiro."), 400
+    if type(dados.get("preco")) not in (int, float):
+        return jsonify(erro="O preço deve ser um número."), 400
+    try:
+        id_veiculo = cadastrar_veiculo(session["id_usuario"], dados)
+    except PermissionError:
+        return jsonify(erro="Acesso negado."), 403
+    except ValueError as erro:
+        return jsonify(erro=str(erro)), 400
+    except OverflowError:
+        return jsonify(erro="Valor numérico fora do limite aceito."), 400
+    except sqlite3.IntegrityError:
+        return jsonify(erro="Confira os dados e os IDs dos recursos."), 400
+    return jsonify(id_veiculo=id_veiculo), 201
