@@ -1,4 +1,8 @@
-
+from favoritos import (
+    adicionar_favorito,
+    listar_favoritos,
+    remover_favorito
+)
 import math
 import os
 import sqlite3
@@ -6,10 +10,8 @@ from veiculos import cadastrar_veiculo, excluir_veiculo
 from contextlib import closing
 from pathlib import Path
 from veiculos import buscar_veiculo_para_edicao, editar_veiculo
-
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request, session
-
 from banco import conectar
 from login import autenticar_usuario
 from match import PESOS, buscar_veiculos_disponiveis, gerar_ranking
@@ -19,8 +21,8 @@ from recuperacao_senha import (
     validar_token,
     enviar_recuperacao,
 )
+from cadastro import cadastrar_usuario
 
-# Carrega o .env da pasta do projeto, antes de ler qualquer variável
 load_dotenv(Path(__file__).with_name(".env"))
 
 app = Flask(__name__)
@@ -292,3 +294,104 @@ def api_excluir_veiculo(id_veiculo):
         mensagem="Veículo desativado com sucesso!",
         id_veiculo=id_veiculo
     ), 200
+
+# ==========================================
+# API: FAVORITOS
+# ==========================================
+
+@app.get("/api/favoritos")
+def api_listar_favoritos():
+    erro = verificar_acesso_api("gerenciar_favoritos")
+    if erro is not None:
+        return erro
+
+    favoritos = listar_favoritos(session["id_usuario"])
+
+    resultado = [
+        {
+            "id_veiculo": item[0],
+            "marca": item[1],
+            "modelo": item[2],
+            "preco": item[3],
+            "data_favorito": item[4]
+        }
+        for item in favoritos
+    ]
+
+    return jsonify(favoritos=resultado), 200
+
+
+@app.post("/api/favoritos")
+def api_adicionar_favorito():
+    erro = verificar_acesso_api("gerenciar_favoritos")
+    if erro is not None:
+        return erro
+
+    dados = request.get_json(silent=True)
+
+    if not isinstance(dados, dict):
+        return jsonify(erro="Envie um objeto JSON."), 400
+
+    id_veiculo = dados.get("id_veiculo")
+
+    if type(id_veiculo) is not int or id_veiculo <= 0:
+        return jsonify(erro="ID do veículo inválido."), 400
+
+    try:
+        sucesso, mensagem = adicionar_favorito(
+            session["id_usuario"], id_veiculo
+        )
+    except PermissionError:
+        return jsonify(erro="Acesso negado."), 403
+    except ValueError as erro:
+        return jsonify(erro=str(erro)), 400
+
+    if not sucesso:
+        return jsonify(mensagem=mensagem), 409
+
+    return jsonify(mensagem=mensagem), 201
+
+
+@app.delete("/api/favoritos/<int:id_veiculo>")
+def api_remover_favorito(id_veiculo):
+    erro = verificar_acesso_api("gerenciar_favoritos")
+    if erro is not None:
+        return erro
+
+    try:
+        sucesso, mensagem = remover_favorito(
+            session["id_usuario"], id_veiculo
+        )
+    except PermissionError:
+        return jsonify(erro="Acesso negado."), 403
+
+    if not sucesso:
+        return jsonify(mensagem=mensagem), 404
+
+    return jsonify(mensagem=mensagem), 200
+@app.post("/api/cadastro")
+def api_cadastro():
+    dados = request.get_json(silent=True)
+
+    if not isinstance(dados, dict):
+        return jsonify(erro="Envie os dados em JSON."), 400
+
+    nome = dados.get("nome")
+    email = dados.get("email")
+    senha = dados.get("senha")
+    perfil = dados.get("perfil")
+
+    if not all(isinstance(v, str) for v in (nome, email, senha, perfil)):
+        return jsonify(erro="Dados de cadastro inválidos."), 400
+
+    if perfil not in ("usuario", "anunciante"):
+        return jsonify(erro="Perfil inválido."), 400
+
+    sucesso, mensagem = cadastrar_usuario(
+        nome, email, senha, perfil
+    )
+
+    if not sucesso:
+        return jsonify(erro=mensagem), 400
+
+    return jsonify(mensagem=mensagem), 201
