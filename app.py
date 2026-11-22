@@ -1,7 +1,8 @@
+
 import math
 import os
 import sqlite3
-from veiculos import cadastrar_veiculo
+from veiculos import cadastrar_veiculo, excluir_veiculo
 from contextlib import closing
 from pathlib import Path
 from veiculos import buscar_veiculo_para_edicao, editar_veiculo
@@ -11,7 +12,7 @@ from flask import Flask, jsonify, render_template, request, session
 
 from banco import conectar
 from login import autenticar_usuario
-from match import PESOS, gerar_ranking
+from match import PESOS, buscar_veiculos_disponiveis, gerar_ranking
 from permissoes import verificar_permissao
 from recuperacao_senha import (
     redefinir_senha,
@@ -192,6 +193,16 @@ def api_recuperar_senha():
         "Se o e-mail estiver cadastrado, "
         "as instrucoes serao enviadas."
     )), 200
+@app.get("/api/veiculos")
+def api_listar_veiculos():
+    erro = verificar_acesso_api("consultar_veiculos")
+
+    if erro is not None:
+        return erro
+
+    veiculos = buscar_veiculos_disponiveis()
+
+    return jsonify(veiculos=veiculos)
 
 @app.post("/api/veiculos")
 def api_cadastrar_veiculo():
@@ -255,5 +266,29 @@ def api_editar_veiculo(id_veiculo):
     except sqlite3.IntegrityError:
         return jsonify(erro="Confira os recursos informados."), 400
     return jsonify(
-        mensagem="Veiculo atualizado com sucesso!",
+        mensagem="Veículo atualizado com sucesso!",
         id_veiculo=id_veiculo
+    ), 200
+@app.delete("/api/veiculos/<int:id_veiculo>")
+def api_excluir_veiculo(id_veiculo):
+    erro = verificar_acesso_api("excluir_veiculos")
+
+    if erro is not None:
+        return erro
+
+    try:
+        excluir_veiculo(
+            session["id_usuario"],
+            id_veiculo
+        )
+
+    except PermissionError:
+        return jsonify(erro="Acesso negado."), 403
+
+    except ValueError as erro:
+        return jsonify(erro=str(erro)), 404
+
+    return jsonify(
+        mensagem="Veículo desativado com sucesso!",
+        id_veiculo=id_veiculo
+    ), 200
