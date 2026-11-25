@@ -1,0 +1,39 @@
+LINKCAR | CORRECAO DE FOTOS DOS CARROS EM ALTA DEFINICAO
+===========================================================
+
+O QUE FOI CORRIGIDO
+- Os anuncios deixaram de usar uma foto generica de categoria.
+- Honda Civic EXS 2012 -> foto de Honda Civic 2012 (mesma geracao, versao EX da fonte).
+- Fiat Strada 2015 -> foto de Fiat Strada 2015.
+- Honda Civic 2016 Hatch -> foto de Civic 5 portas, exposto em 2016.
+- Honda Civic 2016 Seda -> foto de Civic 2016 sedan.
+- Modelos ficticios e sem correspondencia -> placeholder SEM FOTO, nao carro errado.
+- SUV, Sedan, Hatch, Picape, Esportivo e Utilitario na HOME usam referencias
+  reais em resolucoes maiores do Wikimedia Commons.
+- O comportamento de favoritos foi ajustado para obter o ano antes de escolher a foto.
+
+INSTALAR (NAO SUBSTITUIR BANCO NEM PYTHON)
+1. Faca backup dos arquivos antigos:
+      static/js/app.js
+      static/css/site-v2.css
+      templates/index.html
+2. Copie o CONTEUDO deste ZIP para a raiz do LinkCar, mesclando as pastas.
+3. Abra PowerShell na raiz LinkCar e rode:
+      powershell -ExecutionPolicy Bypass -File .\baixar_fotos_hd.ps1
+   Isso baixa os JPGs grandes para static/img/fotos (somente na sua maquina).
+   Se algum download falhar, a interface tentara carregar o mesmo arquivo pela internet.
+4. Reinicie Flask:
+      python -m flask --app app_frontend run
+5. No navegador: Ctrl + F5.
+
+OBSERVACOES IMPORTANTES
+- O banco enviado possui um Honda Civic 2016 classificado como Hatch.
+  Para esse cadastro usamos foto de Civic hatch europeu exposto em 2016.
+  Confirme se a carroceria informada no banco realmente esta correta.
+- 'Teste Teste Rlx' eh ficticio e continuara com a imagem neutra.
+- Para TODOS os anuncios exibirem suas fotos reais, e necessario adicionar
+  upload de imagens e um campo/relacionamento de fotos por veiculo no backend.
+- As fotos sao dos MODELOS, nao dos carros reais anunciados.
+- Preserve CREDITOS_DAS_FOTOS.md (licencas CC BY-SA).
+- O banner esportivo da home continua o mesmo da versao aprovada.
+- Nao execute estrutura.sql nem dados_iniciais.sql novamente.

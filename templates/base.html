@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#071912">
+<meta name="description" content="LinkCar — conectando você ao carro ideal por meio de um Match inteligente.">
+<title>{% block title %}Início{% endblock %} · LinkCar</title>
+<link rel="icon" href="{{ url_for('static',filename='img/logo.svg') }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ url_for('static',filename='css/global.css') }}">
+<link rel="stylesheet" href="{{ url_for('static',filename='css/site-v2.css') }}">
+<script defer src="{{ url_for('static',filename='js/app.js') }}"></script>
+</head>
+<body data-page="{{ pagina|default('inicio') }}"{% if modo is defined %} data-modo="{{ modo }}"{% endif %}{% if id_veiculo is defined %} data-id="{{ id_veiculo }}"{% endif %}>
+<header class="topbar"><div class="wrap nav">
+  <a href="/" class="brand" aria-label="LinkCar — página inicial"><img src="{{ url_for('static',filename='img/logo.svg') }}" alt="Símbolo de conexão"><span>Link<span class="accent">Car</span></span></a>
+  <nav class="links" id="links" aria-label="Menu principal">
+    <a href="/" data-nav="inicio">Início</a>
+    <a href="/catalogo" data-nav="catalogo">Veículos</a>
+    <a href="/match" data-nav="match">Meu Match</a>
+    <a href="/favoritos" data-nav="favoritos">Favoritos</a>
+    <a href="/anunciante" data-nav="anunciante">Meus anúncios</a>
+  </nav>
+  <div class="account" id="account"><a href="/login" class="btn btn-outline btn-small">Entrar</a><a href="/cadastro" class="btn btn-primary btn-small">Criar conta</a></div>
+  <button type="button" class="menu-btn" id="menu-btn" aria-controls="links" aria-expanded="false" aria-label="Abrir menu">☰</button>
+</div></header>
+<main>{% block content %}{% endblock %}</main>
+<footer class="footer"><div class="wrap footer-inner"><a class="footer-brand" href="/"><img src="{{ url_for('static',filename='img/logo.svg') }}" alt="">Link<span class="accent">Car</span></a><span>Conectando pessoas ao carro ideal.</span><span>© 2026 LinkCar · Projeto acadêmico</span></div></footer>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body></html>

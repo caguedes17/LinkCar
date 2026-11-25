@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Início{% endblock %}
+{% block content %}
+<section class="home-hero">
+ <div class="home-hero-image" aria-hidden="true"></div>
+ <div class="wrap home-hero-content">
+   <div class="home-hero-copy">
+     <span class="kicker">O CAMINHO PARA SEU PRÓXIMO CARRO</span>
+     <h1>Encontre o carro ideal<br>para o seu <span class="accent">estilo de vida</span></h1>
+     <p>O LinkCar conecta você aos veículos que realmente combinam com o que procura.</p>
+     <div class="hero-actions"><a class="btn btn-primary" href="/match">◎ Fazer meu Match <span aria-hidden="true">↗</span></a><a class="btn btn-outline" href="/catalogo">Ver veículos</a></div>
+     <div class="home-benefits">
+       <div><span class="benefit-icon">◎</span><span><strong>Match inteligente</strong><small>Carros alinhados ao seu perfil</small></span></div>
+       <div><span class="benefit-icon">◇</span><span><strong>Mais confiança</strong><small>Dados e acesso protegidos</small></span></div>
+       <div><span class="benefit-icon">♡</span><span><strong>Mais controle</strong><small>Favoritos e anúncios organizados</small></span></div>
+     </div>
+   </div>
+ </div>
+</section>
+<section class="wrap home-categories section" aria-labelledby="cat-heading">
+ <div class="section-head"><div><span class="kicker">ESCOLHA SEU ESTILO</span><h2 id="cat-heading">Explore por categoria</h2></div><a class="text-link" href="/catalogo">Ver todos os veículos ↗</a></div>
+ <div class="category-grid">
+   {% for item in [('SUV','jeep-compass-2018.jpg'),('Sedã','honda-civic-2012.jpg'),('Hatch','volkswagen-polo-2019.jpg'),('Picape','fiat-strada-2015.jpg'),('Esportivo','ford-mustang-2018.jpg'),('Utilitário','fiat-doblo-2017.jpg')] %}
+   <a class="category-card" href="/catalogo?carroceria={{ item[0]|urlencode }}"><img src="{{ url_for('static',filename='img/fotos/sem-foto.svg') }}" data-categoria-foto="{{ item[1] }}" class="category-photo" loading="lazy" decoding="async" alt="Foto ilustrativa de veículo da categoria {{ item[0] }}"><span>{{ item[0] }} <span aria-hidden="true">↗</span></span></a>
+   {% endfor %}
+ </div>
+</section>
+<section class="wrap section home-cars-section">
+ <div class="section-head"><div><span class="kicker">VEJA O QUE ESTÁ DISPONÍVEL</span><h2>Veículos em destaque</h2></div><a class="text-link" href="/catalogo">Ver catálogo ↗</a></div>
+ <div class="cards home-cars-grid" id="home-cars"><div class="empty">Carregando anúncios…</div></div>
+</section>
+<section class="wrap section home-how" id="como-funciona" aria-labelledby="how-heading">
+ <div class="home-how-intro"><span class="kicker">SIMPLES, DO INÍCIO AO FIM</span><h2 id="how-heading">Como <span class="accent">funciona?</span></h2><p>Em poucos passos, você descobre os veículos que mais combinam com você.</p></div>
+ <div class="how-steps">
+   <div class="how-step"><span>01</span><h3>Cadastre-se</h3><p>Crie sua conta gratuitamente.</p></div>
+   <div class="how-step"><span>02</span><h3>Defina seu perfil</h3><p>Conte o que procura em um carro.</p></div>
+   <div class="how-step"><span>03</span><h3>Faça seu Match</h3><p>Veja as recomendações personalizadas.</p></div>
+   <div class="how-step"><span>04</span><h3>Escolha seu carro</h3><p>Compare, favorite ou anuncie.</p></div>
+ </div>
+</section>
+{% endblock %}
