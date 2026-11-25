@@ -1,5 +1,12 @@
 __pycache__/
 *.pyc
-linkcar.db
-.env
 .venv/
+
+.env
+
+linkcar.db
+linkcar.db-journal
+linkcar.db-wal
+linkcar.db-shm
+
+/static/uploads/
