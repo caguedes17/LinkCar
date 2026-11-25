@@ -1,116 +1,162 @@
--- LINK CAR - Estrutura inicial do banco de dados
--- Execute este arquivo em um banco SQLite vazio.
--- No DB Browser: Arquivo > Importar > Banco de dados a partir de arquivo SQL
--- ou abra o arquivo no Editor SQL e clique em Executar.
+-- LINKCAR | Estrutura oficial para INSTALACAO NOVA
+-- Compatível com o esquema do linkcar.db enviado.
+-- ATENCAO: DROP TABLE IF EXISTS APAGA TODOS OS DADOS se executado em banco existente.
+-- Execute SOMENTE em banco novo/de teste; nunca no linkcar.db atual.
+-- NAO execute no banco atual com dados de usuarios/anuncios.
+-- Os dados de referencia ficam no arquivo dados_iniciais.sql.
+-- SQLite nao limita o tamanho de VARCHAR(n) automaticamente.
 
 PRAGMA foreign_keys = ON;
 BEGIN TRANSACTION;
 
--- 1. Usuarios
-CREATE TABLE IF NOT EXISTS usuarios (
+-- Remover primeiro tabelas dependentes (filhas), depois as tabelas principais.
+DROP TABLE IF EXISTS fotos_veiculos;
+DROP TABLE IF EXISTS favoritos;
+DROP TABLE IF EXISTS veiculo_recursos;
+DROP TABLE IF EXISTS tokens_recuperacao;
+DROP TABLE IF EXISTS usuario_funcoes;
+DROP TABLE IF EXISTS funcao_permissoes;
+DROP TABLE IF EXISTS veiculos;
+DROP TABLE IF EXISTS recursos_tecnologia;
+DROP TABLE IF EXISTS permissoes;
+DROP TABLE IF EXISTS funcoes;
+DROP TABLE IF EXISTS usuarios;
+
+-- Tabela: usuarios
+CREATE TABLE usuarios (
     id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    senha_hash TEXT NOT NULL,
-    data_criacao TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    nome VARCHAR(120) NOT NULL,
+    email VARCHAR(254) NOT NULL UNIQUE,
+    senha_hash VARCHAR(255) NOT NULL,
+    data_criacao VARCHAR(32) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ativo INTEGER NOT NULL DEFAULT 1
 );
 
--- 2. Funcoes (papeis do RBAC)
-CREATE TABLE IF NOT EXISTS funcoes (
+-- Tabela: funcoes
+CREATE TABLE funcoes (
     id_funcao INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome_funcao TEXT NOT NULL UNIQUE,
-    descricao TEXT
+    nome_funcao VARCHAR(80) NOT NULL UNIQUE,
+    descricao VARCHAR(2000)
 );
 
--- 3. Permissoes
-CREATE TABLE IF NOT EXISTS permissoes (
+-- Tabela: permissoes
+CREATE TABLE permissoes (
     id_permissao INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome_permissao TEXT NOT NULL UNIQUE,
-    descricao TEXT
+    nome_permissao VARCHAR(80) NOT NULL UNIQUE,
+    descricao VARCHAR(2000)
 );
 
--- 4. Relacionamento entre usuarios e funcoes
-CREATE TABLE IF NOT EXISTS usuario_funcoes (
-    id_usuario INTEGER NOT NULL,
-    id_funcao INTEGER NOT NULL,
-    PRIMARY KEY (id_usuario, id_funcao),
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario),
-    FOREIGN KEY (id_funcao) REFERENCES funcoes(id_funcao)
+-- Tabela: recursos_tecnologia
+CREATE TABLE recursos_tecnologia (
+    id_recurso INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome_recurso VARCHAR(120) NOT NULL UNIQUE
 );
 
--- 5. Relacionamento entre funcoes e permissoes
-CREATE TABLE IF NOT EXISTS funcao_permissoes (
-    id_funcao INTEGER NOT NULL,
-    id_permissao INTEGER NOT NULL,
-    PRIMARY KEY (id_funcao, id_permissao),
-    FOREIGN KEY (id_funcao) REFERENCES funcoes(id_funcao),
-    FOREIGN KEY (id_permissao) REFERENCES permissoes(id_permissao)
-);
-
--- 6. Veiculos
-CREATE TABLE IF NOT EXISTS veiculos (
+-- Tabela: veiculos
+CREATE TABLE veiculos (
     id_veiculo INTEGER PRIMARY KEY AUTOINCREMENT,
     id_anunciante INTEGER NOT NULL,
-    marca TEXT NOT NULL,
-    modelo TEXT NOT NULL,
+    marca VARCHAR(80) NOT NULL,
+    modelo VARCHAR(120) NOT NULL,
     ano INTEGER NOT NULL,
     preco REAL NOT NULL,
     quilometragem INTEGER,
-    combustivel TEXT,
-    cambio TEXT,
-    descricao TEXT,
-    data_cadastro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    combustivel VARCHAR(40),
+    cambio VARCHAR(40),
+    descricao VARCHAR(2000),
+    data_cadastro VARCHAR(32) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ativo INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY (id_anunciante) REFERENCES usuarios(id_usuario)
+    carroceria VARCHAR(40),
+    cor VARCHAR(40),
+    motor VARCHAR(40),
+    espaco_interno VARCHAR(40),
+    estilo_design VARCHAR(40),
+
+    FOREIGN KEY (id_anunciante)
+        REFERENCES usuarios(id_usuario)
 );
 
--- Dados iniciais: funcoes
-INSERT OR IGNORE INTO funcoes (nome_funcao, descricao) VALUES
-('Administrador', 'Gerenciamento geral do sistema'),
-('Anunciante', 'Gerenciamento dos proprios anuncios'),
-('Usuario', 'Consulta e pesquisa de veiculos');
+-- Tabela: usuario_funcoes
+CREATE TABLE usuario_funcoes (
+    id_usuario INTEGER NOT NULL,
+    id_funcao INTEGER NOT NULL,
 
--- Dados iniciais: permissoes
-INSERT OR IGNORE INTO permissoes (nome_permissao, descricao) VALUES
-('gerenciar_usuarios', 'Cadastrar, consultar, alterar e desativar usuarios'),
-('gerenciar_funcoes', 'Criar e administrar funcoes do sistema'),
-('gerenciar_permissoes', 'Administrar as permissoes de acesso'),
-('cadastrar_veiculos', 'Cadastrar novos veiculos'),
-('editar_veiculos', 'Alterar informacoes dos veiculos'),
-('excluir_veiculos', 'Excluir veiculos cadastrados'),
-('consultar_veiculos', 'Consultar e pesquisar veiculos'),
-('gerenciar_favoritos', 'Adicionar e remover veiculos dos favoritos');
+    PRIMARY KEY (id_usuario, id_funcao),
 
--- Administrador recebe todas as permissoes
-INSERT OR IGNORE INTO funcao_permissoes (id_funcao, id_permissao)
-SELECT f.id_funcao, p.id_permissao
-FROM funcoes AS f
-CROSS JOIN permissoes AS p
-WHERE f.nome_funcao = 'Administrador';
+    FOREIGN KEY (id_usuario)
+        REFERENCES usuarios(id_usuario),
 
--- Anunciante recebe permissoes relacionadas aos seus anuncios
-INSERT OR IGNORE INTO funcao_permissoes (id_funcao, id_permissao)
-SELECT f.id_funcao, p.id_permissao
-FROM funcoes AS f
-CROSS JOIN permissoes AS p
-WHERE f.nome_funcao = 'Anunciante'
-  AND p.nome_permissao IN (
-      'cadastrar_veiculos',
-      'editar_veiculos',
-      'excluir_veiculos',
-      'consultar_veiculos'
-  );
+    FOREIGN KEY (id_funcao)
+        REFERENCES funcoes(id_funcao)
+);
 
--- Usuario pode consultar veiculos e gerenciar favoritos
-INSERT OR IGNORE INTO funcao_permissoes (id_funcao, id_permissao)
-SELECT f.id_funcao, p.id_permissao
-FROM funcoes AS f
-CROSS JOIN permissoes AS p
-WHERE f.nome_funcao = 'Usuario'
-  AND p.nome_permissao IN (
-      'consultar_veiculos',
-      'gerenciar_favoritos'
-  );
+-- Tabela: funcao_permissoes
+CREATE TABLE funcao_permissoes (
+    id_funcao INTEGER NOT NULL,
+    id_permissao INTEGER NOT NULL,
+
+    PRIMARY KEY (id_funcao, id_permissao),
+
+    FOREIGN KEY (id_funcao)
+        REFERENCES funcoes(id_funcao),
+
+    FOREIGN KEY (id_permissao)
+        REFERENCES permissoes(id_permissao)
+);
+
+-- Tabela: veiculo_recursos
+CREATE TABLE veiculo_recursos (
+    id_veiculo INTEGER NOT NULL,
+    id_recurso INTEGER NOT NULL,
+
+    PRIMARY KEY (id_veiculo, id_recurso),
+
+    FOREIGN KEY (id_veiculo)
+        REFERENCES veiculos(id_veiculo),
+
+    FOREIGN KEY (id_recurso)
+        REFERENCES recursos_tecnologia(id_recurso)
+);
+
+-- Tabela: favoritos
+CREATE TABLE favoritos (
+    id_usuario INTEGER NOT NULL,
+    id_veiculo INTEGER NOT NULL,
+    data_favorito VARCHAR(32) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id_usuario, id_veiculo),
+
+    FOREIGN KEY (id_usuario)
+        REFERENCES usuarios(id_usuario),
+
+    FOREIGN KEY (id_veiculo)
+        REFERENCES veiculos(id_veiculo)
+);
+
+-- Tabela: fotos_veiculos (uma foto principal por veiculo)
+-- O banco guarda apenas o caminho; o arquivo fica em static/uploads/.
+CREATE TABLE fotos_veiculos (
+    id_foto INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_veiculo INTEGER NOT NULL UNIQUE,
+    caminho_arquivo VARCHAR(255) NOT NULL,
+    data_upload DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_veiculo)
+        REFERENCES veiculos(id_veiculo)
+        ON DELETE CASCADE
+);
+
+-- Tabela: tokens_recuperacao
+CREATE TABLE tokens_recuperacao (
+    id_token INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_usuario INTEGER NOT NULL,
+    token_hash VARCHAR(255) NOT NULL UNIQUE,
+    data_expiracao VARCHAR(32) NOT NULL,
+    utilizado INTEGER NOT NULL DEFAULT 0,
+    data_criacao VARCHAR(32) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_usuario)
+        REFERENCES usuarios(id_usuario)
+);
 
 COMMIT;

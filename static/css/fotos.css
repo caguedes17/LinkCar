@@ -1,0 +1,16 @@
+/* LinkCar — atualização da foto principal do anúncio */
+.photo-uploader{display:grid;gap:16px;border:1px solid #3d6047;border-radius:14px;padding:20px;background:#0e241c;margin-top:10px}
+.photo-uploader p{margin:8px 0 0}
+.photo-uploader-row{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.photo-preview-box{display:flex;align-items:center;justify-content:center;width:255px;height:170px;border:1px dashed #55745f;border-radius:12px;background:#112e23;overflow:hidden;text-align:center;color:#a8c7b4}
+.photo-preview-box img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-preview-box img[hidden]{display:none}
+.photo-actions{display:grid;align-content:center;justify-items:start;gap:10px;flex:1;min-width:170px}
+.photo-actions input[type=file]{position:absolute;width:1px;height:1px;padding:0;opacity:0;overflow:hidden}
+.photo-pick{display:inline-flex;align-items:center;justify-content:center;background:#8ee364;color:#102015;font-weight:800;border-radius:10px;padding:12px 18px;cursor:pointer}
+.photo-pick:hover{background:#a5ef7d}
+.photo-actions input[type=file]:focus-visible + small{outline:2px solid #8ee364}
+.listing-item .listing-main{display:flex;align-items:center;gap:14px;min-width:0}
+.listing-item .listing-photo{width:118px;height:74px;object-fit:cover;border-radius:9px;background:#173024;flex-shrink:0}
+.listing-item .listing-details{min-width:0}
+@media(max-width:600px){.photo-preview-box{width:100%;max-width:320px}.listing-item .listing-photo{width:98px;height:67px}}

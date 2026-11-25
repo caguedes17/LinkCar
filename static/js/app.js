@@ -56,7 +56,17 @@ function fotoDoModelo(v){
   if(marca.includes('fiat') && modelo.includes('doblo') && ano>=2016 && ano<=2019)return 'fiat-doblo-2017.jpg';
   return null;
 }
+let fotosPorVeiculo={};
+let fotosCarregadas=false;
+async function carregarFotos(recarregar=false){
+  if(fotosCarregadas&&!recarregar)return;
+  try{const d=await api('/api/fotos-veiculos');fotosPorVeiculo=d.fotos||{};fotosCarregadas=true;}
+  catch(e){console.warn('Foto enviada indisponível; usando imagens ilustrativas.',e.message);}
+}
 function imagemDoVeiculo(v){
+  const fotoEnviada=fotosPorVeiculo[String(v.id_veiculo)];
+  if(typeof fotoEnviada==='string'&&fotoEnviada.startsWith('/static/uploads/veiculos/'))
+    return {src:fotoEnviada,backup:'',desc:`Foto do veículo ${String(v.marca)} ${String(v.modelo)} enviada pelo anunciante`,possui:true};
   const nome=fotoDoModelo(v);
   if(!nome)return {src:FOTO_SEM_MODELO, backup:'', desc:'Sem foto cadastrada para este anúncio', possui:false};
   return {src:FOTO_BASE+nome,backup:FOTO_ORIGEM[nome],desc:`Fotografia ilustrativa de ${String(v.marca)} ${String(v.modelo)}; versão e cor podem variar`,possui:true};
@@ -89,7 +99,7 @@ async function sessionHeader(){const box=$('#account');try{const data=await api(
 async function loginInit(){const form=$('#form-login');form.addEventListener('submit',async e=>{e.preventDefault();const submit=$('button[type="submit"]',form);submit.disabled=true;try{const data=await api('/api/login',{method:'POST',body:formObj(form)});aviso('Login realizado!');const next=new URLSearchParams(location.search).get('proximo');if(next&&next.startsWith('/')&&!next.startsWith('//'))go(next);else go(data.perfil==='Anunciante'?'/anunciante':'/catalogo')}catch(err){invalidMessage(err)}finally{submit.disabled=false}})}
 async function cadastroInit(){const form=$('#form-cadastro');form.addEventListener('submit',async e=>{e.preventDefault();const d=formObj(form);if(d.senha!==d.confirmar){aviso('As senhas não coincidem.',true);return}delete d.confirmar;const b=$('button[type="submit"]',form);b.disabled=true;try{await api('/api/cadastro',{method:'POST',body:d});aviso('Cadastro realizado! Faça login.');setTimeout(()=>go('/login'),950)}catch(err){invalidMessage(err)}finally{b.disabled=false}})}
 function recoveryInit(){const form=$('#form-recuperacao');form.addEventListener('submit',async e=>{e.preventDefault();const b=$('button[type="submit"]',form);b.disabled=true;try{const d=await api('/api/recuperar-senha',{method:'POST',body:formObj(form)});aviso(d.mensagem||'Se o e-mail estiver cadastrado, você receberá instruções.')}catch(err){invalidMessage(err)}finally{b.disabled=false}})}
-async function loadCars(){const result=await api('/api/veiculos');return result.veiculos||[]}
+async function loadCars(){const result=await api('/api/veiculos');await carregarFotos();return result.veiculos||[]}
 async function homeInit(){const list=$('#home-cars');try{const cars=await loadCars();knownCars=cars;list.innerHTML=cars.length?cars.slice(0,4).map(v=>vehicleCard(v)).join(''):'<div class="empty">Ainda não existem anúncios ativos.</div>'}catch(e){list.innerHTML='<div class="empty">Entre na sua conta para visualizar os veículos disponíveis. <a class="text-link" href="/login">Entrar ↗</a></div>'}}
 async function catalogInit(){const root=$('#catalog-cars');try{knownCars=await loadCars();let f;const render=()=>{const search=$('#busca').value.trim().toLowerCase(),max=Number($('#max-preco').value),body=$('#filtro-carroceria').value.toLowerCase();f=knownCars.filter(v=>(`${v.marca} ${v.modelo}`).toLowerCase().includes(search)&&(!max||Number(v.preco)<=max)&&(!body||(body==='esportivo'?(v.estilo_design||'').toLowerCase()===body:(v.carroceria||'').toLowerCase()===body)));$('#result-count').textContent=`${f.length} veículo(s) encontrado(s)`;root.innerHTML=f.length?f.map(v=>vehicleCard(v)).join(''):'<div class="empty">Nenhum veículo encontrado com esses filtros.</div>'};const urlCategoria=new URLSearchParams(location.search).get('carroceria');if(urlCategoria){const sel=$('#filtro-carroceria');if([...sel.options].some(o=>o.value===urlCategoria))sel.value=urlCategoria;}['#busca','#max-preco','#filtro-carroceria'].forEach(s=>$(s).addEventListener('input',render));$('#limpar-filtros').addEventListener('click',()=>{$('#busca').value='';$('#max-preco').value='';$('#filtro-carroceria').value='';render()});render()}catch(e){root.innerHTML='<div class="empty">Não foi possível carregar os anúncios.</div>';invalidMessage(e)}}
 async function favoritesInit(){await loadFavoritos()}
@@ -138,17 +148,57 @@ async function matchInit(){
     try{
       const d=await api('/api/match',{method:'POST',body:payload});
       $('#match-intro').style.display='none';
+      await carregarFotos();
       knownCars=d.resultados||[];
       out.innerHTML=knownCars.length?knownCars.map(v=>vehicleCard(v,{score:v.porcentagem??v.compatibilidade??0,details:(v.atendidos||[]).slice(0,3).join(' • ')})).join(''):'<div class="empty">Nenhum veículo combina com os filtros atuais. Experimente ampliar suas preferências.</div>';
     }catch(err){invalidMessage(err);out.innerHTML=''}
   });
 }
-async function advertiserInit(){const root=$('#meus-veiculos');try{const data=await api('/api/anunciante/meus-veiculos');const cars=data.veiculos||[];$('#stat-total').textContent=cars.length;$('#stat-media').textContent=cars.length?money(cars.reduce((sum,v)=>sum+Number(v.preco),0)/cars.length):money(0);root.innerHTML=cars.length?cars.map(v=>`<div class="listing-item"><div><strong>${esc(v.marca)} ${esc(v.modelo)}</strong><small>${esc(v.ano)} · ${money(v.preco)} · ID ${Number(v.id_veiculo)}</small></div><div class="listing-actions"><a class="btn btn-outline btn-small" href="/anunciante/editar/${Number(v.id_veiculo)}">Editar</a><button class="btn btn-danger btn-small" data-excluir="${Number(v.id_veiculo)}">Desativar</button></div></div>`).join(''):'<div class="empty">Você ainda não possui anúncios ativos. <a class="text-link" href="/anunciante/novo">Publicar primeiro veículo ↗</a></div>';root.onclick=async e=>{const btn=e.target.closest('[data-excluir]');if(!btn)return;const id=Number(btn.dataset.excluir);if(!confirm('Desativar este anúncio? O registro continuará salvo no banco.'))return;try{await api(`/api/veiculos/${id}`,{method:'DELETE'});aviso('Anúncio desativado!');advertiserInit()}catch(err){invalidMessage(err)}}}catch(e){root.innerHTML='<div class="empty">Não foi possível carregar seus anúncios.</div>';invalidMessage(e)}}
+async function advertiserInit(){
+ const root=$('#meus-veiculos');
+ try{
+  const data=await api('/api/anunciante/meus-veiculos');
+  await carregarFotos();
+  const cars=data.veiculos||[];
+  $('#stat-total').textContent=cars.length;
+  $('#stat-media').textContent=cars.length?money(cars.reduce((sum,v)=>sum+Number(v.preco),0)/cars.length):money(0);
+  root.innerHTML=cars.length?cars.map(v=>{
+    const foto=imagemDoVeiculo(v);
+    return `<div class="listing-item"><div class="listing-main"><img class="listing-photo model-photo" src="${esc(foto.src)}" data-backup="${esc(foto.backup||'')}" alt="${esc(foto.desc)}" loading="lazy"><div class="listing-details"><strong>${esc(v.marca)} ${esc(v.modelo)}</strong><small>${esc(v.ano)} · ${money(v.preco)} · ID ${Number(v.id_veiculo)}</small></div></div><div class="listing-actions"><a class="btn btn-outline btn-small" href="/anunciante/editar/${Number(v.id_veiculo)}">Editar</a><button class="btn btn-danger btn-small" data-excluir="${Number(v.id_veiculo)}">Desativar</button></div></div>`;
+  }).join(''):'<div class="empty">Você ainda não possui anúncios ativos. <a class="text-link" href="/anunciante/novo">Publicar primeiro veículo ↗</a></div>';
+  root.onclick=async e=>{
+    const btn=e.target.closest('[data-excluir]');if(!btn)return;
+    const id=Number(btn.dataset.excluir);
+    if(!confirm('Desativar este anúncio? O registro continuará salvo no banco.'))return;
+    try{await api(`/api/veiculos/${id}`,{method:'DELETE'});aviso('Anúncio desativado!');advertiserInit()}catch(err){invalidMessage(err)}
+  };
+ }catch(e){root.innerHTML='<div class="empty">Não foi possível carregar seus anúncios.</div>';invalidMessage(e)}
+}
+async function enviarFotoVeiculo(idVeiculo,arquivo){
+ const dados=new FormData();dados.append('foto',arquivo);
+ let resposta;
+ try{resposta=await fetch(`/api/veiculos/${idVeiculo}/foto`,{method:'POST',body:dados,credentials:'same-origin',headers:{Accept:'application/json'}})}
+ catch(e){throw new Error('Não foi possível enviar a foto. Verifique a conexão com o Flask.')}
+ let conteudo={};try{conteudo=await resposta.json()}catch{}
+ if(!resposta.ok)throw new Error(conteudo.erro||`Falha ao enviar foto (HTTP ${resposta.status}).`);
+ fotosCarregadas=false;return conteudo;
+}
 async function vehicleFormInit(){
  const form=$('#form-veiculo'),mode=document.body.dataset.modo,recordId=Number(document.body.dataset.id||0);
- const box=$('#form-recursos');const chosen=new Set();
- const count=$('#form-recursos-contagem');
+ const box=$('#form-recursos'),chosen=new Set(),count=$('#form-recursos-contagem');
+ const photoInput=$('#foto-veiculo'),photoPreview=$('#foto-preview'),photoPlaceholder=$('#foto-placeholder');
+ const photoStatus=$('#foto-status'),removePhoto=$('#remover-foto');
  const sync=()=>{if(count)count.textContent=chosen.size?`${chosen.size} recurso(s) selecionado(s)`:'Nenhum recurso selecionado';};
+ function exibirFoto(src,texto){photoPreview.hidden=!src;photoPlaceholder.hidden=!!src;if(src)photoPreview.src=src;else photoPreview.removeAttribute('src');photoStatus.textContent=texto;}
+ const MAX_FOTO=5*1024*1024;
+ photoInput.addEventListener('change',()=>{
+   const arq=photoInput.files?.[0];if(!arq)return;
+   const permitidos=['image/jpeg','image/png','image/webp'];
+   if(!permitidos.includes(arq.type)||arq.size>MAX_FOTO){photoInput.value='';aviso('Selecione JPG, PNG ou WebP com até 5 MB.',true);return;}
+   const src=URL.createObjectURL(arq);
+   photoPreview.onload=()=>URL.revokeObjectURL(src);
+   exibirFoto(src,`${arq.name} · ${(arq.size/1024/1024).toFixed(1)} MB`);
+ });
  let resources=[];
  try{
    const data=await api('/api/recursos');resources=data.recursos||[];
@@ -158,15 +208,39 @@ async function vehicleFormInit(){
  box.addEventListener('click',e=>{const b=e.target.closest('button[data-id]');if(!b)return;const id=Number(b.dataset.id);if(chosen.has(id))chosen.delete(id);else chosen.add(id);syncButtons()});
  $('#limpar-form-recursos')?.addEventListener('click',()=>{chosen.clear();syncButtons()});
  if(mode==='editar'){
-   try{const data=await api(`/api/anunciante/veiculo/${recordId}`);const v=data.veiculo;
-      for(const [key,value] of Object.entries(v)){const control=form.elements.namedItem(key);if(control&&key!=='recursos'&&value!==null)control.value=value}
-      for(const id of v.recursos||[])chosen.add(Number(id));syncButtons();
+   try{
+     const data=await api(`/api/anunciante/veiculo/${recordId}`),v=data.veiculo;
+     for(const [key,value] of Object.entries(v)){const control=form.elements.namedItem(key);if(control&&key!=='recursos'&&value!==null)control.value=value}
+     for(const id of v.recursos||[])chosen.add(Number(id));syncButtons();
+     await carregarFotos();
+     const atual=fotosPorVeiculo[String(recordId)];
+     if(atual){exibirFoto(atual,'Foto atual do anúncio. Selecione outra para substituir.');removePhoto.hidden=false}
+     else exibirFoto(null,'Nenhuma foto enviada. Você pode adicionar uma agora.');
    }catch(e){invalidMessage(e)}
  }
+ removePhoto.addEventListener('click',async()=>{
+   if(!confirm('Remover a foto principal deste anúncio?'))return;
+   try{await api(`/api/veiculos/${recordId}/foto`,{method:'DELETE'});delete fotosPorVeiculo[String(recordId)];photoInput.value='';exibirFoto(null,'Foto removida. Você pode enviar outra.');removePhoto.hidden=true;aviso('Foto removida!')}catch(e){invalidMessage(e)}
+ });
  form.addEventListener('submit',async e=>{
-    e.preventDefault();const obj=formObj(form);for(const k of ['ano','preco','quilometragem'])obj[k]=Number(obj[k]);obj.recursos=[...chosen];
+    e.preventDefault();const obj=formObj(form);delete obj.foto;
+    for(const k of ['ano','preco','quilometragem'])obj[k]=Number(obj[k]);obj.recursos=[...chosen];
     const btn=$('button[type="submit"]',form);btn.disabled=true;
-    try{if(mode==='editar'){await api(`/api/veiculos/${recordId}`,{method:'PATCH',body:obj});aviso('Alterações salvas!')}else{await api('/api/veiculos',{method:'POST',body:obj});aviso('Anúncio publicado!')}setTimeout(()=>go('/anunciante'),900)}catch(err){invalidMessage(err)}finally{btn.disabled=false}
-  });
+    try{
+      let idSalvo=recordId;
+      if(mode==='editar')await api(`/api/veiculos/${recordId}`,{method:'PATCH',body:obj});
+      else{const retorno=await api('/api/veiculos',{method:'POST',body:obj});idSalvo=Number(retorno.id_veiculo)}
+      if(photoInput.files?.length){
+        try{await enviarFotoVeiculo(idSalvo,photoInput.files[0]);}
+        catch(fotoErro){
+          aviso(`Anúncio salvo (ID ${idSalvo}), mas a foto falhou: ${fotoErro.message}`,true);
+          if(mode!=='editar')setTimeout(()=>go(`/anunciante/editar/${idSalvo}`),2400);
+          return;
+        }
+      }
+      aviso(mode==='editar'?'Alterações salvas!':'Anúncio publicado!');
+      setTimeout(()=>go('/anunciante'),950);
+    }catch(err){invalidMessage(err)}finally{btn.disabled=false}
+ });
 }
 document.addEventListener('DOMContentLoaded',async()=>{$$('img[data-categoria-foto]').forEach(img=>{const filename=img.dataset.categoriaFoto;img.src=FOTO_BASE+filename;img.dataset.backup=FOTO_ORIGEM[filename]||'';});const menu=$('#menu-btn'),links=$('#links');menu?.addEventListener('click',()=>{links.classList.toggle('open');menu.setAttribute('aria-expanded',String(links.classList.contains('open')))});const nav=$(`[data-nav="${page}"]`);if(nav)nav.classList.add('active');await sessionHeader();bindVehicleArea();({inicio:homeInit,login:loginInit,cadastro:cadastroInit,recuperar:recoveryInit,catalogo:catalogInit,match:matchInit,favoritos:favoritesInit,anunciante:advertiserInit} [page]||(()=>{}))();if($('#form-veiculo'))vehicleFormInit()});

@@ -8,6 +8,7 @@
 <link rel="icon" href="{{ url_for('static',filename='img/logo.svg') }}" type="image/svg+xml">
 <link rel="stylesheet" href="{{ url_for('static',filename='css/global.css') }}">
 <link rel="stylesheet" href="{{ url_for('static',filename='css/site-v2.css') }}">
+<link rel="stylesheet" href="{{ url_for('static',filename='css/fotos.css') }}">
 <script defer src="{{ url_for('static',filename='js/app.js') }}"></script>
 </head>
 <body data-page="{{ pagina|default('inicio') }}"{% if modo is defined %} data-modo="{{ modo }}"{% endif %}{% if id_veiculo is defined %} data-id="{{ id_veiculo }}"{% endif %}>
